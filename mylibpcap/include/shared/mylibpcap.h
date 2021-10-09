@@ -99,8 +99,8 @@ public:
 class PCAP_SESSION{
 
 private:
-	//string data_path = "/home/xun/dataset/MAWI/";
-    string data_path = "/home/xun/dataset/CAIDA/";
+	string data_path = "/home/xun/dataset/MAWI/";
+    //string data_path = "/home/xun/dataset/CAIDA/";
 	//string data_path = "/home/xun/dataset/IMC/";
     //variables for pcap session
     char ebuf[PCAP_ERRBUF_SIZE];

@@ -3,3 +3,4 @@ rerskt/output
 get_groundtruth
 calc_accuracy
 build
+.vscode

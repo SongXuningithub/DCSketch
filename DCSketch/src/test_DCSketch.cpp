@@ -15,8 +15,8 @@ int main()
 {
     DCSketch dcsketch;
     //string filename = "imc_merge_0000";
-    string filename = "CAIDA_frag_0000";
-    //string filename = "pkts_frag_00000";
+    //string filename = "CAIDA_frag_0000";
+    string filename = "pkts_frag_00000";
     PCAP_SESSION session(filename);
     IP_PACKET cur_packet;
     string srcip,dstip;
@@ -42,10 +42,10 @@ void write_res(string filename,DCSketch& dcsketch)
 {
     // string ifile_path = "../../get_groundtruth/truth/IMC/";
     // string ofile_path = "../../DCSketch/output/IMC/";
-    string ifile_path = "../../get_groundtruth/truth/CAIDA/";
-    string ofile_path = "../../DCSketch/output/CAIDA/";
-    // string ifile_path = "../../get_groundtruth/truth/MAWI/";
-    // string ofile_path = "../../DCSketch/output/MAWI/";
+    // string ifile_path = "../../get_groundtruth/truth/CAIDA/";
+    // string ofile_path = "../../DCSketch/output/CAIDA/";
+    string ifile_path = "../../get_groundtruth/truth/MAWI/";
+    string ofile_path = "../../DCSketch/output/MAWI/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
