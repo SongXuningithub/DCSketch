@@ -193,127 +193,110 @@ uint32_t TYPE_MAX()
     return 0;
 }
 
-// void SS_Table::report_superspreaders()
-// {
-//     for(size_t i = 0;i < ss_table.size();i++)
-//     {
-//         cout<<ss_table[i].flowid<<"  "<<ss_table[i].get_spread()<<endl;
-//     }
-// }
+uint32_t HLL_Arr::get_leading_zeros(uint32_t bitstr)
+{
+    for(size_t i = 1;i <= 32;i++)
+    {
+        if( ((bitstr<<i)>>i) != bitstr )
+            return i - 1;
+    }
+    return 32;
+}
 
-// int SS_Table::process_flow(string flowid,string element,double max_dec)
-// {
-//     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER3);
-//     array<uint32_t,subtab_num> poses;
-//     poses[0] = (hashres128[0]>>32) % subtab_size;
-//     poses[1] = static_cast<uint32_t>(hashres128[0]) % subtab_size;
-//     poses[2] = (hashres128[1]>>32) % subtab_size;
-//     uint32_t try_tab =  static_cast<uint32_t>(hashres128[0]) % subtab_num;
-//     uint32_t esti_pos;
-//     uint32_t min_pos;
-//     double min_val = 2;
-//     bool find_empty = false;
-//     for(size_t i = 0;i < subtab_num;i++)
-//     {
-//         esti_pos = offsets[(try_tab + i)%subtab_num] + poses[(try_tab + i)%subtab_num];
-//         if(ss_table[esti_pos].flowid == flowid)
-//         {
-//             uint32_t hashres32 = str_hash32(element,HASH_SEED_LAYER3);
-//             double decval = static_cast<double>(hashres32)/MAX_UINT32;
-//             ss_table[esti_pos].update(decval);
-//             return -1;
-//         }
-//         if(ss_table[esti_pos].flowid == "")
-//         {
-//             find_empty = true;
-//             break;
-//         }
-//         double tmp_val = BJKST_Estimator::int2dec(ss_table[esti_pos].minimumk[BJKST_Estimator::k-1]);
-//         if(tmp_val < min_val)
-//         {
-//             min_val = tmp_val;
-//             min_pos = esti_pos;
-//         }
-//     }
-//     if(!find_empty)
-//     {
-//         if(max_dec < min_val)  //the processed flow is larger than the minimum flow among those hashed ones 
-//             return min_pos;   //so we expel the flow with the minimum flow and replace it with the processed flow.
-//         else
-//             return -1;
-//     }
-//     else
-//     {
-//         return esti_pos;   //position which is empty
-//     }
-// }
+uint32_t HLL_Arr::get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos)
+{
+    uint32_t uint8_pos = HLL_pos * (register_num >> 1) + bucket_pos / 2;
+    if(bucket_pos % 2 == 0)
+        return HLL_raw[uint8_pos] >> 4;       //high 4 bits
+    else
+        return HLL_raw[uint8_pos] & 15;       //low 4 bits
+}
 
-// bool SS_Table::insert_flow(string flowid,uint32_t insert_pos,array<double,BJKST_Estimator::k> decvals)
-// {
-//     ss_table[insert_pos].flowid = flowid;
-//     for(size_t i = 0;i < decvals.size();i++)
-//     {
-//         ss_table[insert_pos].minimumk[i] = BJKST_Estimator::dec2int(decvals[i]);
-//     }
-//     return true;
-// }
+void HLL_Arr::set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_)
+{
+    uint32_t uint8_pos = HLL_pos * (register_num >> 1) + bucket_pos / 2;
+    if(bucket_pos % 2 == 0)
+    {
+        HLL_raw[uint8_pos] &= 15;            //keep the low 4 bits unchanged 
+        HLL_raw[uint8_pos] |= static_cast<uint8_t>(val_) << 4;      //set the high 4 bits
+    }
+    else
+    {
+        HLL_raw[uint8_pos] &= 240;            //keep the high 4 bits unchanged 
+        HLL_raw[uint8_pos] |= static_cast<uint8_t>(val_);
+    }
+}
 
-// uint32_t SS_Table::get_flow_spread(string flowid)
-// {
-//     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER3);
-//     array<uint32_t,subtab_num> poses;
-//     poses[0] = (hashres128[0]>>32) % subtab_size;
-//     poses[1] = static_cast<uint32_t>(hashres128[0]) % subtab_size;
-//     poses[2] = (hashres128[1]>>32) % subtab_size;
-//     uint32_t ret_spread = 0;
-//     uint32_t esti_pos;
-//     for(size_t i = 0;i < subtab_num;i++)
-//     {
-//         esti_pos = offsets[i] + poses[i];
-//         if(ss_table[esti_pos].flowid == flowid)
-//         {
-//             ret_spread = ss_table[esti_pos].get_spread();
-//         }
-//     }
-//     return ret_spread;
-// }
+void HLL_Arr::process_packet(string flowid,string elementid)
+{
+    uint32_t hashres32 = str_hash32(elementid,HASH_SEED_2);
+    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
+    uint32_t HLL_pos;
+    if((hashres32 & register_num) == 0)    //use the 6th bit to determine which bucket to update
+        HLL_pos = (hashres128[1] >> 32) % HLL_num;
+    else
+        HLL_pos = static_cast<uint32_t>(hashres128[1]) % HLL_num;
+    //uint32_t HLL_pos = hashres32 % HLL_num;
+    uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
+    uint32_t rou_x = get_leading_zeros(hashres32) + 1;
+    rou_x = rou_x <= 15 ? rou_x : 15;
+    uint32_t bucket_val = get_counter_val(HLL_pos,bucket_pos);
+    if(bucket_val < rou_x)
+    {
+        set_counter_val(HLL_pos,bucket_pos,rou_x);
+    }
+}
 
-// void SS_Table::BJKST_Estimator::update(uint32_t intval)
-// {
-//     int insert_pos = 10000;
-//     bool insertable = true;
-//     for(int i = k - 1;i >= 0;i--)
-//     {
-//         uint32_t curval = minimumk[i];
-//         if(intval < curval)
-//         {
-//             insert_pos = i;
-//             continue;
-//         }
-//         if(intval == curval)
-//         {
-//             insertable = false;
-//             break;
-//         }
-//         if(intval > curval)
-//         {
-//             break;
-//         }
-//     }
-//     if(!insertable || insert_pos >= k)
-//         return;
-//     for(int j = k - 2;j >= insert_pos;j--)
-//     {
-//         minimumk[j + 1] = minimumk[j];
-//     }
-//     if(insert_pos < k)
-//         minimumk[insert_pos] = intval;
-// }
+uint32_t HLL_Arr::get_spread(uint32_t pos)
+{
+    double sum_ = 0;
+    uint32_t V_ = 0;
+    for(size_t i = 0;i < register_num;i++)
+    {
+        uint32_t tmpval = get_counter_val(pos,i);
+        sum_ += 1.0 / (1 << tmpval);
+        if(tmpval == 0)
+            V_++;
+    }
+    double ret;
+    ret = alpha_m_sqm / sum_;
+    if(ret <= LC_thresh)
+    {
+        if(V_ > 0)
+            ret = register_num * log(register_num / (double)V_);
+    }
+    return static_cast<uint32_t>(ret);
+}
 
-// void SS_Table::BJKST_Estimator::update(double decval)
-// {
-//     update(dec2int(decval)); 
-// }
+uint32_t HLL_Arr::get_spread(string flowid)
+{
+    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
+    array<uint32_t,2> HLL_pos;
+    HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
+    HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
+    array<double,2> res;
+    for(size_t p = 0; p < 2;p++)
+    {
+        double sum_ = 0;
+        uint32_t V_ = 0;
+        for(size_t i = 0;i < register_num;i++)
+        {
+            uint32_t tmpval = get_counter_val(HLL_pos[p],i);
+            sum_ += 1.0 / (1 << tmpval);
+            if(tmpval == 0)
+                V_++;
+        }
+        res[p] = alpha_m_sqm / sum_;
+        if(res[p] <= LC_thresh)
+        {
+            if(V_ > 0)
+                res[p] = register_num * log(register_num / (double)V_);
+        }
+    }
+    double minres = res[0] < res[1] ? res[0] : res[1];
+    return static_cast<uint32_t>(minres * 2);
+}
+
 
 uint8_t HLL::get_leading_zeros(uint32_t bitstr)
 {
@@ -369,13 +352,13 @@ void DCSketch::update_L2_card(string flowid,string element)
 void DCSketch::process_element(string flowid,string element)
 {
     bool layer1_full = layer1.process_element(flowid,element);
-    update_L2_card(flowid,element);
     if(!layer1_full)
     {
         update_L1_card(flowid,element);
         return;
     }
     layer2.process_packet(flowid,element);
+    update_L2_card(flowid,element);
 }
 
 void DCSketch::update_mean_error()
@@ -384,11 +367,15 @@ void DCSketch::update_mean_error()
     // if(L1_mean_error > L1_Param::max_spread)
     //     L1_mean_error = (int)L1_Param::max_spread;
     // //L2_mean_error = L2_ELEM_CARD.get_cardinality() / L2_FLOW_CARD.get_cardinality() * (L2_FLOW_CARD.get_cardinality() - 1) / layer2.bjkst_arr_size;
-    // uint32_t l2_ele_card = L2_ELEM_CARD.get_cardinality();
-    // uint32_t l2_flow_card = L2_FLOW_CARD.get_cardinality();
-    // uint32_t l1_card = L1_ELEM_CARD.get_cardinality();
-    L1_mean_error = 0;
-    L2_mean_error = 0;
+    uint32_t l2_ele_card = L2_ELEM_CARD.get_cardinality();
+    uint32_t l2_flow_card = L2_FLOW_CARD.get_cardinality();
+    cout<<"l2_flow_card: "<<l2_flow_card<<endl;
+    cout<<"l2_ele_card: "<<l2_ele_card<<endl;
+    uint32_t l1_card = L1_ELEM_CARD.get_cardinality();
+    L1_mean_error = l1_card / L1_Param::bitmap_num;
+    if(L1_mean_error > L1_Param::max_spread)
+        L1_mean_error = (int)L1_Param::max_spread;
+    L2_mean_error = 833;//426;
     //L2_mean_error = (L2_ELEM_CARD.get_cardinality() - L1_CARD.get_cardinality()) * (L2_FLOW_CARD.get_cardinality() - 1) / L2_FLOW_CARD.get_cardinality() + L1_mean_error;
     return;
 }
@@ -400,6 +387,10 @@ uint32_t DCSketch::query_spread(string flowid)
     {
         return spread_layer1;
     }
-    uint32_t spread_layer2 = layer2.get_spread(flowid);
-    return spread_layer2 + 19;
+    int spread_layer2 = layer2.get_spread(flowid);
+    spread_layer2 -= (int)L2_mean_error * 2;
+    int ret = spread_layer2 + 19 - L1_mean_error * 2;
+    if(ret <= 0)
+        ret = 1;
+    return ret;
 }

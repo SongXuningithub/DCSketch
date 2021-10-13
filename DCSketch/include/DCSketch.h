@@ -55,8 +55,8 @@ public:
 };
 
 /*
-Layer 2:    A sketch which consists of BJKST estimators. In another word, the counter array in canonical
-            sketches is replaced with BJKST estimator array in our Layer2 sketch. We use Layer2 to record
+Layer 2:    A sketch which consists of HyperLogLog estimators. In another word, the counter array in canonical
+            sketches is replaced with HyperLogLog estimator array in our Layer2 sketch. We use Layer2 to record
             Medium-sized flows.
 */
 
@@ -65,92 +65,21 @@ public:
     static const uint32_t memory = 300;      //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
-    static const uint32_t register_num = 16;
+    static const uint32_t register_num = 32;
     static const uint32_t register_size = 4;
     static const uint32_t HLL_size = register_num * register_size;
     static const uint32_t HLL_num = memory * 1024 * 8 / HLL_size;
     static constexpr double alpha_m = 0.673; 
-    static constexpr double alpha_m_sqm = alpha_m * 16 * 16; 
-    static constexpr double LC_thresh = 2.5 * 16; 
+    static constexpr double alpha_m_sqm = alpha_m * register_num * register_num; 
+    static constexpr double LC_thresh = 2.5 * register_num; 
     array<uint8_t,memory * 1024 * 8 / 8> HLL_raw{};
-    uint32_t get_leading_zeros(uint32_t bitstr)
-    {
-        for(size_t i = 1;i <= 32;i++)
-        {
-            if( ((bitstr<<i)>>i) != bitstr )
-                return i - 1;
-        }
-        return 32;
-    }
-    uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos)
-    {
-        uint32_t uint8_pos = HLL_pos * 8 + bucket_pos / 2;
-        if(bucket_pos % 2 == 0)
-            return HLL_raw[uint8_pos] >> 4;
-        else
-            return HLL_raw[uint8_pos] & 15;
-    }
-    void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_)
-    {
-        uint32_t uint8_pos = HLL_pos * 8 + bucket_pos / 2;
-        if(bucket_pos % 2 == 0)
-        {
-            HLL_raw[uint8_pos] &= 15;            //keep the low 4 bits unchanged 
-            HLL_raw[uint8_pos] |= static_cast<uint8_t>(val_ << 4);      //set the high 4 bits
-        }
-        else
-        {
-            HLL_raw[uint8_pos] &= 240;            //keep the high 4 bits unchanged 
-            HLL_raw[uint8_pos] |= static_cast<uint8_t>(val_);
-        }
-    }
-    void process_packet(string flowid,string elementid)
-    {
-        uint32_t hashres32 = str_hash32(elementid,HASH_SEED_2);
-        array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
-        uint32_t HLL_pos;
-        if((hashres32 & 16) == 0)    //use the 5th bit to determine which bucket to update
-            HLL_pos = (hashres128[1] >> 32) % HLL_num;
-        else
-            HLL_pos = static_cast<uint32_t>(hashres128[1]) % HLL_num;
-        //uint32_t HLL_pos = hashres32 % HLL_num;
-        uint32_t bucket_pos = hashres32 & 15; //use the last 4 bits to locate the bucket to update
-        uint32_t rou_x = get_leading_zeros(hashres32) + 1;
-        rou_x = rou_x <= 15 ? rou_x : 15;
-        uint32_t bucket_val = get_counter_val(HLL_pos,bucket_pos);
-        if(bucket_val < rou_x)
-        {
-            set_counter_val(HLL_pos,bucket_pos,rou_x);
-        }
-    }
-    uint32_t get_spread(string flowid)
-    {
-        array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
-        array<uint32_t,2> HLL_pos;
-        HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
-        HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
-        array<double,2> res;
-        for(size_t p = 0; p < 2;p++)
-        {
-            double sum_ = 0;
-            uint32_t V_ = 0;
-            for(size_t i = 0;i < 16;i++)
-            {
-                uint32_t tmpval = get_counter_val(HLL_pos[p],i);
-                sum_ += 1.0 / (1 << tmpval);
-                if(tmpval == 0)
-                    V_++;
-            }
-            res[p] = alpha_m_sqm / sum_;
-            if(res[p] <= LC_thresh)
-            {
-                if(V_ > 0)
-                    res[p] = 16 * log(16.0 / V_);
-            }
-        }
-        double minres = res[0] < res[1] ? res[0] : res[1];
-        return static_cast<uint32_t>(minres * 2);
-    }
+
+    uint32_t get_leading_zeros(uint32_t bitstr);
+    uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
+    void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
+    void process_packet(string flowid,string elementid);
+    uint32_t get_spread(string flowid);
+    uint32_t get_spread(uint32_t pos);
 };
 
 /*
