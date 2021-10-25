@@ -32,8 +32,10 @@ int main()
         }
     }
     dcsketch.update_mean_error();
-    //write_res(filename,dcsketch);
-    //write_HLL_distribution(filename,dcsketch);
+    cout<<"number of flows: "<<dcsketch.FLOW_CARD.get_cardinality()<<endl;
+    cout<<"number of elements: "<<dcsketch.ELEM_CARD.get_cardinality()<<endl;
+    write_res(filename,dcsketch);
+    write_HLL_distribution(filename,dcsketch);
     //dcsketch.layer3.report_superspreaders();
     return 0;
 }
@@ -64,8 +66,7 @@ void write_res(string filename,DCSketch& dcsketch)
         uint32_t estimated_spread = dcsketch.query_spread(flowid);
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread<<endl;
     }
-    cout<<"mean error in layer1:" << dcsketch.L1_mean_error<<endl;
-    cout<<"mean error in layer2:" << dcsketch.L2_mean_error<<endl;
+
     ifile_hand.close();
     ofile_hand.close();
 }
@@ -82,7 +83,7 @@ void write_HLL_distribution(string filename,DCSketch& dcsketch)
     string ifile_path = "../../get_groundtruth/truth/CAIDA/";
     string ofile_path = "../../DCSketch/output/CAIDA/HLL_dist/";
     // string ifile_path = "../../get_groundtruth/truth/MAWI/";
-    // string ofile_path = "../../DCSketch/output/MAWI/";
+    // string ofile_path = "../../DCSketch/output/MAWI/HLL_dist/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
@@ -99,6 +100,8 @@ void write_HLL_distribution(string filename,DCSketch& dcsketch)
         uint32_t spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
+        if(flowid.length() < 4)
+            break;
         if(grd_truth.find(spread) != grd_truth.end())
             grd_truth[spread]++;
         else
@@ -134,6 +137,26 @@ void write_HLL_distribution(string filename,DCSketch& dcsketch)
     for(auto hllval : keys)
     {
         ofile_hand << hllval << " " << HLL_dist[hllval] << endl;
+    }
+
+    unordered_map<uint32_t,uint32_t> Bitmap_dist;
+    for(size_t i = 0;i < dcsketch.layer1.bitmap_num;i++)
+    {
+        uint32_t cur_val = dcsketch.layer1.get_spread(i);
+        if(Bitmap_dist.find(cur_val) != Bitmap_dist.end())
+            Bitmap_dist[cur_val]++;
+        else
+            Bitmap_dist.insert(pair<uint32_t,uint32_t>(cur_val,1));
+    }
+    keys.clear();
+    for(auto iter = Bitmap_dist.begin();iter != Bitmap_dist.end();iter++)
+    {
+        keys.insert(iter->first);
+    }
+    ofile_hand<<"Bitmap value distribution"<<endl;
+    for(auto hllval : keys)
+    {
+        ofile_hand << hllval << " " << Bitmap_dist[hllval] << endl;
     }
     ifile_hand.close();
     ofile_hand.close();

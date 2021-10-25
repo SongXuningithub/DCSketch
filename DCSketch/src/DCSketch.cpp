@@ -14,7 +14,6 @@ namespace metadata{
 
 Bitmap_Arr::Bitmap_Arr()
 {
-    using namespace L1_Param;
     cout<<"Layer1: Bitmap array initializing:"<<endl;
 
     for(uint8_t i = 0;i < bitmap_size;i++)
@@ -39,10 +38,10 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
     using namespace metadata;
 #define FULL_PAT static_cast<uint8_t>(255>>2)
 
-    bits_bias = bitmap_pos * L1_Param::bitmap_size;
+    bits_bias = bitmap_pos * bitmap_size;
     uint32_pos =  bits_bias/ 32;
     inner_bias = bits_bias % 32;
-    shift_ = 31 - (inner_bias + L1_Param::bitmap_size - 1);
+    shift_ = 31 - (inner_bias + bitmap_size - 1);
     uint8_t res;
     if(shift_ >= 0)
     {
@@ -58,7 +57,7 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
 
 bool Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
 {
-    for(uint8_t i=0;i<L1_Param::bitmap_size;i++)
+    for(uint8_t i=0;i<bitmap_size;i++)
     {
         if( (input_bitmap | (1 << i)) == FULL_PAT)
             return true;
@@ -85,8 +84,8 @@ bool Bitmap_Arr::add_element(uint32_t bit_pos)
 bool Bitmap_Arr::process_element(string flowid,string element)
 {
     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER1);
-    array<uint32_t,L1_Param::hash_num> L1_pos;
-    for(uint8_t i = 0;i < L1_Param::hash_num;i++)
+    array<uint32_t,hash_num> L1_pos;
+    for(uint8_t i = 0;i < hash_num;i++)
     {
         uint32_t cur_pos;
         if(i%2==0)
@@ -97,11 +96,11 @@ bool Bitmap_Arr::process_element(string flowid,string element)
         {
             cur_pos = static_cast<uint32_t>(hashres128[i/2]);
         }
-        cur_pos %= L1_Param::bitmap_num;
+        cur_pos %= bitmap_num;
         L1_pos[i] = cur_pos;
     }
     uint32_t hashres32 = str_hash32(element,HASH_SEED_LAYER1);
-    uint32_t update_pos = L1_pos[(hashres32>>16) % L1_Param::hash_num];
+    uint32_t update_pos = L1_pos[(hashres32>>16) % hash_num];
     uint8_t bitmap_state = get_bitmap(update_pos);
 #ifdef DEBUG_LAYER1
     cout<<"before changed: "<<std::bitset<6>(bitmap_state)<<endl;
@@ -109,7 +108,7 @@ bool Bitmap_Arr::process_element(string flowid,string element)
     bool all_full = true;
     if(!check_bitmap_full(bitmap_state))
     {
-        uint32_t update_bit = static_cast<uint16_t>(hashres32)%L1_Param::bitmap_size;
+        uint32_t update_bit = static_cast<uint16_t>(hashres32) % bitmap_size;
         add_element(update_bit);
 #ifdef DEBUG_LAYER1
         bitmap_state = get_bitmap(update_pos);
@@ -123,7 +122,7 @@ bool Bitmap_Arr::process_element(string flowid,string element)
 #ifdef DEBUG_LAYER12
         cout<<"ONE bitmap_state: "<<std::bitset<6>(bitmap_state)<<endl;
 #endif
-        for(uint8_t i = 0;i < L1_Param::hash_num;i++)
+        for(uint8_t i = 0;i < hash_num;i++)
         {
             if(L1_pos[i] == update_pos)
                 continue;
@@ -144,7 +143,6 @@ bool Bitmap_Arr::process_element(string flowid,string element)
 
 uint32_t Bitmap_Arr::get_spread(string flowid)
 {
-    using namespace L1_Param;
     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER1);
     array<uint32_t,hash_num> L1_pos;
     for(uint8_t i = 0;i < L1_pos.size();i++)
@@ -179,6 +177,19 @@ uint32_t Bitmap_Arr::get_spread(string flowid)
     if(all_full)
         return BITMAP_FULL_FLAG;
     return static_cast<uint8_t>(flow_spread);
+}
+
+uint32_t Bitmap_Arr::get_spread(uint32_t pos)
+{
+    uint8_t bitmap_state = get_bitmap(pos);
+    uint8_t zeros_num = 0;
+    for(uint8_t bit_pos = 0;bit_pos < bitmap_size;bit_pos++)
+    {
+        if( (bitmap_state & patterns[bit_pos]) == 0)
+            zeros_num++;
+    }
+    double flow_spread = spreads[zeros_num];
+    return static_cast<uint32_t>(flow_spread);
 }
 
 template<class T>
@@ -231,19 +242,19 @@ void HLL_Arr::process_packet(string flowid,string elementid)
 {
     uint32_t hashres32 = str_hash32(elementid,HASH_SEED_2);
     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
-    uint32_t HLL_pos;
-    if((hashres32 & register_num) == 0)    //use the 6th bit to determine which bucket to update
-        HLL_pos = (hashres128[1] >> 32) % HLL_num;
-    else
-        HLL_pos = static_cast<uint32_t>(hashres128[1]) % HLL_num;
-    //uint32_t HLL_pos = hashres32 % HLL_num;
+    uint32_t HLL_pos[2];
+    HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
+    HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
     uint32_t rou_x = get_leading_zeros(hashres32) + 1;
-    rou_x = rou_x <= 15 ? rou_x : 15;
-    uint32_t bucket_val = get_counter_val(HLL_pos,bucket_pos);
-    if(bucket_val < rou_x)
+    for(size_t i = 0;i < 2;i++)
     {
-        set_counter_val(HLL_pos,bucket_pos,rou_x);
+        rou_x = rou_x <= 15 ? rou_x : 15;
+        uint32_t bucket_val = get_counter_val(HLL_pos[i],bucket_pos);
+        if(bucket_val < rou_x)
+        {
+            set_counter_val(HLL_pos[i],bucket_pos,rou_x);
+        }
     }
 }
 
@@ -274,27 +285,25 @@ uint32_t HLL_Arr::get_spread(string flowid)
     array<uint32_t,2> HLL_pos;
     HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
     HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
-    array<double,2> res;
-    for(size_t p = 0; p < 2;p++)
+    double res;
+    double sum_ = 0;
+    uint32_t V_ = 0;
+    for(size_t i = 0;i < register_num;i++)
     {
-        double sum_ = 0;
-        uint32_t V_ = 0;
-        for(size_t i = 0;i < register_num;i++)
-        {
-            uint32_t tmpval = get_counter_val(HLL_pos[p],i);
-            sum_ += 1.0 / (1 << tmpval);
-            if(tmpval == 0)
-                V_++;
-        }
-        res[p] = alpha_m_sqm / sum_;
-        if(res[p] <= LC_thresh)
-        {
-            if(V_ > 0)
-                res[p] = register_num * log(register_num / (double)V_);
-        }
+        uint32_t tmpval_0 = get_counter_val(HLL_pos[0],i);
+        uint32_t tmpval_1 = get_counter_val(HLL_pos[1],i);
+        uint32_t tmpval = min(tmpval_0 , tmpval_1) ;//tmpval_0 < tmpval_1 ? tmpval_0 : tmpval_1;
+        sum_ += 1.0 / (1 << tmpval);
+        if(tmpval == 0)
+            V_++;
     }
-    double minres = res[0] < res[1] ? res[0] : res[1];
-    return static_cast<uint32_t>(minres * 2);
+    res = alpha_m_sqm / sum_;
+    if(res <= LC_thresh)
+    {
+        if(V_ > 0)
+            res = register_num * log(register_num / (double)V_);
+    }
+    return static_cast<uint32_t>(res);
 }
 
 
@@ -338,27 +347,37 @@ uint32_t HLL::get_cardinality()
     return E;
 }
 
-void DCSketch::update_L1_card(string flowid,string element)
-{
-    L1_ELEM_CARD.process_flow(flowid + element);
-}
 
-void DCSketch::update_L2_card(string flowid,string element)
+
+// void DCSketch::update_L1_card(string flowid,string element)
+// {
+//     L1_ELEM_CARD.process_flow(flowid + element);
+// }
+
+// void DCSketch::update_L2_card(string flowid,string element)
+// {
+//     L2_FLOW_CARD.process_flow(flowid);
+//     L2_ELEM_CARD.process_flow(flowid + element);
+// }
+
+void DCSketch::update_HLL(string flowid,string element)
 {
-    L2_FLOW_CARD.process_flow(flowid);
-    L2_ELEM_CARD.process_flow(flowid + element);
+    FLOW_CARD.process_flow(flowid);
+    ELEM_CARD.process_flow(flowid + element);
 }
 
 void DCSketch::process_element(string flowid,string element)
 {
     bool layer1_full = layer1.process_element(flowid,element);
+    update_HLL(flowid,element);
+    //keys.insert(stoul(flowid));
     if(!layer1_full)
     {
-        update_L1_card(flowid,element);
+        //update_L1_card(flowid,element);
         return;
     }
     layer2.process_packet(flowid,element);
-    update_L2_card(flowid,element);
+    //update_L2_card(flowid,element);
 }
 
 void DCSketch::update_mean_error()
@@ -367,15 +386,16 @@ void DCSketch::update_mean_error()
     // if(L1_mean_error > L1_Param::max_spread)
     //     L1_mean_error = (int)L1_Param::max_spread;
     // //L2_mean_error = L2_ELEM_CARD.get_cardinality() / L2_FLOW_CARD.get_cardinality() * (L2_FLOW_CARD.get_cardinality() - 1) / layer2.bjkst_arr_size;
-    uint32_t l2_ele_card = L2_ELEM_CARD.get_cardinality();
-    uint32_t l2_flow_card = L2_FLOW_CARD.get_cardinality();
-    cout<<"l2_flow_card: "<<l2_flow_card<<endl;
-    cout<<"l2_ele_card: "<<l2_ele_card<<endl;
-    uint32_t l1_card = L1_ELEM_CARD.get_cardinality();
-    L1_mean_error = l1_card / L1_Param::bitmap_num;
-    if(L1_mean_error > L1_Param::max_spread)
-        L1_mean_error = (int)L1_Param::max_spread;
-    L2_mean_error = 833;//426;
+    // uint32_t l2_ele_card = L2_ELEM_CARD.get_cardinality();
+    // uint32_t l2_flow_card = L2_FLOW_CARD.get_cardinality();
+    // cout<<"l2_flow_card: "<<l2_flow_card<<endl;
+    // cout<<"l2_ele_card: "<<l2_ele_card<<endl;
+    // uint32_t l1_card = L1_ELEM_CARD.get_cardinality();
+    // L1_mean_error = l1_card / L1_Param::bitmap_num;
+    // if(L1_mean_error > L1_Param::max_spread)
+    //     L1_mean_error = (int)L1_Param::max_spread;
+    L1_mean_error = 0;
+    L2_mean_error = 0;//833;//426;
     //L2_mean_error = (L2_ELEM_CARD.get_cardinality() - L1_CARD.get_cardinality()) * (L2_FLOW_CARD.get_cardinality() - 1) / L2_FLOW_CARD.get_cardinality() + L1_mean_error;
     return;
 }

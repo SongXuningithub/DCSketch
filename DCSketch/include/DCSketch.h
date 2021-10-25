@@ -8,6 +8,7 @@
 #include<array>
 #include<memory>
 #include<vector>
+#include<set>
 #include<unordered_map>
 using std::string;
 using std::cin;
@@ -31,20 +32,23 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
             resort to layer2 to record them.  
 */
 
-namespace L1_Param{
-    const uint32_t memory = 400;      //kB
-    const uint32_t bitmap_size = 6;      //bits
-    const uint32_t bitmap_num = memory * 1024 * 8 / bitmap_size;
-    const uint32_t hash_num = 2;
-    static constexpr double max_spread = 9.8275; //L1_Param::bitmap_size * log(L1_Param::bitmap_size);
-};
+// namespace L1_Param{
+//     const uint32_t memory = 400;      //kB
+//     const uint32_t bitmap_size = 6;      //bits
+//     const uint32_t bitmap_num = memory * 1024 * 8 / bitmap_size;
+//     const uint32_t hash_num = 2;
+//     static constexpr double max_spread = 9.8275; //L1_Param::bitmap_size * log(L1_Param::bitmap_size);
+// };
 
 class Bitmap_Arr{
-private:
-    uint32_t raw[L1_Param::memory*1024*8/32];
-    array<uint8_t,L1_Param::bitmap_size> patterns;
-    array<double,L1_Param::bitmap_size + 1> spreads;
 public:
+    static const uint32_t memory = 400;      //kB
+    static const uint32_t bitmap_size = 6;      //bits
+    static const uint32_t bitmap_num = memory * 1024 * 8 / bitmap_size;
+    static const uint32_t hash_num = 2;
+    uint32_t raw[memory*1024*8/32];
+    array<uint8_t,bitmap_size> patterns;
+    array<double,bitmap_size + 1> spreads;
 #define BITMAP_FULL_FLAG 435
     Bitmap_Arr();
     uint8_t get_bitmap(uint32_t bitmap_pos);
@@ -52,6 +56,7 @@ public:
     bool add_element(uint32_t bit_pos);
     bool process_element(string flowid,string element);
     uint32_t get_spread(string flowid);
+    uint32_t get_spread(uint32_t pos);
 };
 
 /*
@@ -146,13 +151,17 @@ class DCSketch{
 public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
-    HLL L1_ELEM_CARD;
-    HLL L2_FLOW_CARD;
-    HLL L2_ELEM_CARD;
+    // HLL L1_ELEM_CARD;
+    // HLL L2_FLOW_CARD;
+    // HLL L2_ELEM_CARD;
+    HLL FLOW_CARD;
+    HLL ELEM_CARD;
+    //set<uint32_t> keys;     //just for debug
     uint32_t L1_mean_error;
     uint32_t L2_mean_error;
-    void update_L1_card(string flowid,string element);
-    void update_L2_card(string flowid,string element);
+    // void update_L1_card(string flowid,string element);
+    // void update_L2_card(string flowid,string element);
+    void update_HLL(string flowid,string element);
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void update_mean_error();
