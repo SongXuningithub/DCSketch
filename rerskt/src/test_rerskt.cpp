@@ -13,9 +13,10 @@ void write_res(string filename,RerSkt& rersketch);
 
 int main()
 {
+    string dataset = "IMC";
     //string filename = "CAIDA_frag_0000";
     string filename = "imc_merge_0000";
-    PCAP_SESSION session(filename);
+    PCAP_SESSION session(dataset,filename);
     IP_PACKET cur_packet;
     string srcip,dstip;
     RerSkt rerskt;

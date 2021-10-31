@@ -2,7 +2,8 @@
 
 int main()
 {
-    PCAP_SESSION session("pkts_frag_00000");
+    string dataset = "MAWI";
+    PCAP_SESSION session(dataset,"pkts_frag_00000");
     IP_PACKET cur_packet;
     int status = session.get_packet(cur_packet);
     while(status = session.get_packet(cur_packet))

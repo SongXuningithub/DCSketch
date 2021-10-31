@@ -1,4 +1,6 @@
 DCSketch/output
+DCSketch/metadata
+Distribution_Estimation/files
 rerskt/output
 get_groundtruth
 calc_accuracy

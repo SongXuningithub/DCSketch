@@ -4,6 +4,7 @@
 #include <bitset>
 #include <vector>
 #include <algorithm>
+#include <fstream>
 
 namespace metadata{
     uint32_t bits_bias;
@@ -360,7 +361,7 @@ uint32_t HLL::get_cardinality()
 //     L2_ELEM_CARD.process_flow(flowid + element);
 // }
 
-void DCSketch::update_HLL(string flowid,string element)
+void DCSketch::update_global_HLL(string flowid,string element)
 {
     FLOW_CARD.process_flow(flowid);
     ELEM_CARD.process_flow(flowid + element);
@@ -369,34 +370,18 @@ void DCSketch::update_HLL(string flowid,string element)
 void DCSketch::process_element(string flowid,string element)
 {
     bool layer1_full = layer1.process_element(flowid,element);
-    update_HLL(flowid,element);
-    //keys.insert(stoul(flowid));
+    update_global_HLL(flowid,element);
     if(!layer1_full)
     {
-        //update_L1_card(flowid,element);
         return;
     }
     layer2.process_packet(flowid,element);
-    //update_L2_card(flowid,element);
 }
 
 void DCSketch::update_mean_error()
 {
-    // L1_mean_error = L1_ELEM_CARD.get_cardinality() / L1_Param::bitmap_num;
-    // if(L1_mean_error > L1_Param::max_spread)
-    //     L1_mean_error = (int)L1_Param::max_spread;
-    // //L2_mean_error = L2_ELEM_CARD.get_cardinality() / L2_FLOW_CARD.get_cardinality() * (L2_FLOW_CARD.get_cardinality() - 1) / layer2.bjkst_arr_size;
-    // uint32_t l2_ele_card = L2_ELEM_CARD.get_cardinality();
-    // uint32_t l2_flow_card = L2_FLOW_CARD.get_cardinality();
-    // cout<<"l2_flow_card: "<<l2_flow_card<<endl;
-    // cout<<"l2_ele_card: "<<l2_ele_card<<endl;
-    // uint32_t l1_card = L1_ELEM_CARD.get_cardinality();
-    // L1_mean_error = l1_card / L1_Param::bitmap_num;
-    // if(L1_mean_error > L1_Param::max_spread)
-    //     L1_mean_error = (int)L1_Param::max_spread;
     L1_mean_error = 0;
-    L2_mean_error = 0;//833;//426;
-    //L2_mean_error = (L2_ELEM_CARD.get_cardinality() - L1_CARD.get_cardinality()) * (L2_FLOW_CARD.get_cardinality() - 1) / L2_FLOW_CARD.get_cardinality() + L1_mean_error;
+    L2_mean_error = 0;
     return;
 }
 
@@ -413,4 +398,34 @@ uint32_t DCSketch::query_spread(string flowid)
     if(ret <= 0)
         ret = 1;
     return ret;
+
+    
 }
+
+// DCSketch::DCSketch(string dataset,string filename)
+// {
+//     offline = true;
+//     string ifile_path = "../../DCSketch/metadata/" + dataset + "/";
+//     ifstream ifile_hand;
+//     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + "sketch.txt");
+//     if(!ifile_hand)
+//     {
+//         cout<<"fail to open files."<<endl;
+//         return;
+//     }
+//     offline_layer1.resize(layer1.bitmap_num);
+//     offline_layer2.resize(layer2.HLL_num);
+//     string str;
+//     getline(ifile_hand,str);
+//     cout << str << endl;
+//     for(size_t i = 0;i < offline_layer1.size();i++)
+//     {
+//         ifile_hand >> offline_layer1[i];
+//     }
+//     getline(ifile_hand,str);
+//     cout << str << endl;
+//     for(size_t i = 0;i < offline_layer2.size();i++)
+//     {
+//         ifile_hand >> offline_layer2[i];
+//     }
+// }

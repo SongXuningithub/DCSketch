@@ -99,9 +99,7 @@ public:
 class PCAP_SESSION{
 
 private:
-	//string data_path = "/home/xun/dataset/MAWI/";
-    string data_path = "/home/xun/dataset/CAIDA/";
-	//string data_path = "/home/xun/dataset/IMC/";
+    string data_path = "/home/xun/dataset/";
     //variables for pcap session
     char ebuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap_session;// = pcap_open_offline(pcap_file.c_str(), ebuf);
@@ -112,9 +110,9 @@ private:
     bool eof_flag = false;
 
 public:
-	PCAP_SESSION(string filename)
+	PCAP_SESSION(string dataset,string filename)
 	{
-		string pcap_file = data_path + filename + ".pcap";
+		string pcap_file = data_path + dataset + "/" + filename + ".pcap";
 		pcap_session = pcap_open_offline(pcap_file.c_str(), ebuf);
 	}
     int get_packet(IP_PACKET& ret_pkt);

@@ -9,15 +9,17 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-void write_res(string filename,DCSketch& dcsketch);
-void write_HLL_distribution(string filename,DCSketch& dcsketch);
+void write_res(string dataset,string filename,DCSketch& dcsketch);
+void write_HLL_distribution(string dataset,string filename,DCSketch& dcsketch);
+void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 int main()
 {
     DCSketch dcsketch;
+    string dataset = "CAIDA";
     //string filename = "imc_merge_0000";
     string filename = "CAIDA_frag_0000";
     //string filename = "pkts_frag_00000";
-    PCAP_SESSION session(filename);
+    PCAP_SESSION session(dataset,filename);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
@@ -34,20 +36,42 @@ int main()
     dcsketch.update_mean_error();
     cout<<"number of flows: "<<dcsketch.FLOW_CARD.get_cardinality()<<endl;
     cout<<"number of elements: "<<dcsketch.ELEM_CARD.get_cardinality()<<endl;
-    write_res(filename,dcsketch);
-    write_HLL_distribution(filename,dcsketch);
-    //dcsketch.layer3.report_superspreaders();
+    // write_res(dataset,filename,dcsketch);
+    // write_HLL_distribution(dataset,filename,dcsketch);
+    write_sketch(dataset,filename,dcsketch);
     return 0;
 }
 
-void write_res(string filename,DCSketch& dcsketch)
+void write_sketch(string dataset,string filename,DCSketch& dcsketch)
 {
-    // string ifile_path = "../../get_groundtruth/truth/IMC/";
-    // string ofile_path = "../../DCSketch/output/IMC/";
-    string ifile_path = "../../get_groundtruth/truth/CAIDA/";
-    string ofile_path = "../../DCSketch/output/CAIDA/";
-    // string ifile_path = "../../get_groundtruth/truth/MAWI/";
-    // string ofile_path = "../../DCSketch/output/MAWI/";
+    string ofile_path = "../../DCSketch/metadata/" + dataset + "/";
+    ofstream ofile_hand;
+    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "sketch.txt");
+    if(!ofile_hand)
+    {
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    uint32_t layer1_len = dcsketch.layer1.bitmap_num;
+    ofile_hand<<"layer1: "<<layer1_len<<endl;
+    for(size_t i = 0;i < layer1_len;i++)
+    {
+        ofile_hand << dcsketch.layer1.get_spread(i) << endl;
+    }
+
+    uint32_t layer2_len = dcsketch.layer2.HLL_num;
+    ofile_hand<<"layer2: "<<layer2_len << endl;
+    for(size_t i = 0;i < layer2_len;i++)
+    {
+        ofile_hand << dcsketch.layer2.get_spread(i) << endl;
+    }
+    ofile_hand.close();
+}
+
+void write_res(string dataset,string filename,DCSketch& dcsketch)
+{
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
@@ -66,7 +90,6 @@ void write_res(string filename,DCSketch& dcsketch)
         uint32_t estimated_spread = dcsketch.query_spread(flowid);
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread<<endl;
     }
-
     ifile_hand.close();
     ofile_hand.close();
 }
@@ -76,14 +99,10 @@ bool cmp_fun(pair<uint32_t,uint32_t> &a,pair<uint32_t,uint32_t> &b)
     return a.first < b.first;
 }
 
-void write_HLL_distribution(string filename,DCSketch& dcsketch)
+void write_HLL_distribution(string dataset,string filename,DCSketch& dcsketch)
 {
-    // string ifile_path = "../../get_groundtruth/truth/IMC/";
-    // string ofile_path = "../../DCSketch/output/IMC/";
-    string ifile_path = "../../get_groundtruth/truth/CAIDA/";
-    string ofile_path = "../../DCSketch/output/CAIDA/HLL_dist/";
-    // string ifile_path = "../../get_groundtruth/truth/MAWI/";
-    // string ofile_path = "../../DCSketch/output/MAWI/HLL_dist/";
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/" + dataset + "/HLL_dist/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");

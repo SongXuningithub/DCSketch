@@ -149,41 +149,25 @@ public:
 
 class DCSketch{
 public:
+    //online part
     Bitmap_Arr layer1;
     HLL_Arr layer2;
-    // HLL L1_ELEM_CARD;
-    // HLL L2_FLOW_CARD;
-    // HLL L2_ELEM_CARD;
     HLL FLOW_CARD;
     HLL ELEM_CARD;
-    //set<uint32_t> keys;     //just for debug
+    //DCSketch(){}
+    void update_global_HLL(string flowid,string element);
     uint32_t L1_mean_error;
     uint32_t L2_mean_error;
-    // void update_L1_card(string flowid,string element);
-    // void update_L2_card(string flowid,string element);
-    void update_HLL(string flowid,string element);
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void update_mean_error();
+
+    // //offline part
+    // vector<uint8_t> offline_layer1;
+    // vector<uint32_t> offline_layer2;
+    // DCSketch(string dataset,string filename);
 };
 
+
+
 #endif
-
-
-// uint32_t get_counter_val(uint32_t bit_offset)
-// {
-//     uint32_t uint8_pos = bit_offset / 8;
-//     uint32_t inner_offset = bit_offset % 8;
-//     uint32_t res;
-//     if(inner_offset <= 3)
-//     {
-//         res = HLL_raw[uint8_pos] >> (3 - inner_offset);
-//     } 
-//     else
-//     {
-//         res = HLL_raw[uint8_pos] << (inner_offset - 3);
-//         res += HLL_raw[uint8_pos + 1] >> (11 - inner_offset);
-//     }
-//     res &= 31;
-//     return res;
-// }
