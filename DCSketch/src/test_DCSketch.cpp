@@ -9,16 +9,20 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-void write_res(string dataset,string filename,DCSketch& dcsketch);
+void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
 void write_HLL_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
+void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
 int main()
 {
+//#define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_SUPER_SPREADERS 1
+//#define OUTPUT_SKETCH 1
     DCSketch dcsketch;
-    string dataset = "CAIDA";
+    string dataset = "MAWI"; //"CAIDA";
     //string filename = "imc_merge_0000";
-    string filename = "CAIDA_frag_0000";
-    //string filename = "pkts_frag_00000";
+    //string filename = "CAIDA_frag_0000";
+    string filename = "pkts_frag_00000";
     PCAP_SESSION session(dataset,filename);
     IP_PACKET cur_packet;
     string srcip,dstip;
@@ -36,9 +40,22 @@ int main()
     dcsketch.update_mean_error();
     cout<<"number of flows: "<<dcsketch.FLOW_CARD.get_cardinality()<<endl;
     cout<<"number of elements: "<<dcsketch.ELEM_CARD.get_cardinality()<<endl;
-    // write_res(dataset,filename,dcsketch);
-    // write_HLL_distribution(dataset,filename,dcsketch);
+
+#ifdef OUTPUT_PERFLOW_SPREAD
+    write_perflow_spread(dataset,filename,dcsketch);
+#endif
+
+#ifdef OUTPUT_SUPER_SPREADERS
+    uint32_t threshold = 1000;
+    set<string> superspreaders;
+    dcsketch.layer2.report_superspreaders(threshold, superspreaders);
+    write_superspreaders(dataset,filename,superspreaders);
+#endif
+    
+#ifdef OUTPUT_SKETCH
+    write_HLL_distribution(dataset,filename,dcsketch);
     write_sketch(dataset,filename,dcsketch);
+#endif
     return 0;
 }
 
@@ -68,7 +85,7 @@ void write_sketch(string dataset,string filename,DCSketch& dcsketch)
     ofile_hand.close();
 }
 
-void write_res(string dataset,string filename,DCSketch& dcsketch)
+void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
 {
     string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../DCSketch/output/" + dataset + "/";
@@ -91,6 +108,23 @@ void write_res(string dataset,string filename,DCSketch& dcsketch)
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread<<endl;
     }
     ifile_hand.close();
+    ofile_hand.close();
+}
+
+void write_superspreaders(string dataset,string filename,set<string>& superspreaders)
+{
+    string ofile_path = "../../DCSketch/superspreaders/" + dataset + "/";
+    ofstream ofile_hand;
+    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    if(!ofile_hand)
+    {
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    for(auto item : superspreaders)
+    {
+        ofile_hand << item <<endl;
+    }
     ofile_hand.close();
 }
 

@@ -4,8 +4,12 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-using namespace std;
+#include <set>
+#include "hashfunc.h"
 
+using namespace std;
+#define HASH_SEED_1 92317
+#define HASH_SEED_2 37361 
 uint32_t get_leading_zeros(uint32_t bitstr);
 
 class MultiResBitmap{
@@ -16,6 +20,7 @@ public:
     static const uint32_t C = 120000;
     static const uint32_t c = 2 + 10;   //log2(C / (2.6744 * b)); == 9.47
     static constexpr double setmax_ratio = 0.7981;
+    static const uint32_t mrbitmap_size = b * (c - 1) + b_hat;
     vector<vector<uint8_t>> V;
     MultiResBitmap();    
     uint32_t get_ones_num(uint32_t layer);
@@ -25,26 +30,21 @@ public:
 
 class SS_Bucket{
 public:
-    uint32_t K;
-    uint32_t L;
+    string K;
+    uint32_t L = 0;
     MultiResBitmap mrbitmap;
+    static const uint32_t bkt_size = 32 + 32 + MultiResBitmap::mrbitmap_size;
 };
 
 class SpreadSketch{
 public:
-    static const uint32_t r = 2;
-    static const uint32_t w = 10;
+    static const uint32_t r = 4;
+    uint32_t w;
     vector<vector<SS_Bucket>> bkt_table;
-    SpreadSketch();
+    SpreadSketch(uint32_t mem);
+    void update(string flowid, string elementid);
+    uint32_t query(string flowid);
+    void output_superspreaders(uint32_t threshold,set<string>& superspreaders);
 };
-
-SpreadSketch::SpreadSketch()
-{
-    bkt_table.resize(r);
-    for(size_t i = 0;i < r;i++)
-    {
-        bkt_table[i].resize(w);
-    }
-}
 
 #endif

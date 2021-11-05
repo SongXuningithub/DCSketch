@@ -100,7 +100,7 @@ bool Bitmap_Arr::process_element(string flowid,string element)
         cur_pos %= bitmap_num;
         L1_pos[i] = cur_pos;
     }
-    uint32_t hashres32 = str_hash32(element,HASH_SEED_LAYER1);
+    uint32_t hashres32 = str_hash32(flowid + element,HASH_SEED_LAYER1);
     uint32_t update_pos = L1_pos[(hashres32>>16) % hash_num];
     uint8_t bitmap_state = get_bitmap(update_pos);
 #ifdef DEBUG_LAYER1
@@ -241,9 +241,10 @@ void HLL_Arr::set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_
 
 void HLL_Arr::process_packet(string flowid,string elementid)
 {
+    //operation on hyperloglog sketch
     uint32_t hashres32 = str_hash32(elementid,HASH_SEED_2);
     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
-    uint32_t HLL_pos[2];
+    array<uint32_t,2> HLL_pos;
     HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
     HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
@@ -257,6 +258,9 @@ void HLL_Arr::process_packet(string flowid,string elementid)
             set_counter_val(HLL_pos[i],bucket_pos,rou_x);
         }
     }
+
+    //operation on hash table
+    insert_hashtab(flowid,HLL_pos,hashres128[0]);
 }
 
 uint32_t HLL_Arr::get_spread(uint32_t pos)

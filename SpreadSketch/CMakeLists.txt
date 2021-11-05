@@ -14,6 +14,12 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_link_libraries(
+    ${PROJECT_NAME}
+    PUBLIC
+    hashfunc
+)
+
 add_executable(
     test_SS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/test_SS.cpp
@@ -23,4 +29,5 @@ target_link_libraries(
     test_SS
     PUBLIC
     ${PROJECT_NAME}
+    mylibpcap
 )

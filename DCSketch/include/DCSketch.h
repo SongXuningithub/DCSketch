@@ -78,6 +78,7 @@ public:
     static constexpr double alpha_m_sqm = alpha_m * register_num * register_num; 
     static constexpr double LC_thresh = 2.5 * register_num; 
     array<uint8_t,memory * 1024 * 8 / 8> HLL_raw{};
+    
 
     uint32_t get_leading_zeros(uint32_t bitstr);
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
@@ -85,6 +86,22 @@ public:
     void process_packet(string flowid,string elementid);
     uint32_t get_spread(string flowid);
     uint32_t get_spread(uint32_t pos);
+
+    class Table_Entry{
+    public:
+        string flowid;
+        array<uint8_t,2> selected_counters;
+    };
+    uint32_t table_mem = 20; //KB
+    uint32_t tab_size = table_mem * 1024 * 8 / (4 + 4 + 32);
+    vector<Table_Entry> hash_table; 
+    void insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64);
+    void report_superspreaders(uint32_t threshold, set<string>& superspreaders);
+    
+    HLL_Arr()
+    {
+        hash_table.resize(tab_size);
+    }
 };
 
 /*
@@ -94,44 +111,77 @@ Layer 3:    A hash table which store <key,value> pairs where the key is the flow
             larger.
 */
 
-// class SS_Table  //Super-Spreader Table
-// {
-// public:
-//     class BJKST_Estimator{
-//     public:
-//         static const uint32_t k = BJKST_Arr::k;
-//         string flowid = "";
-//         array<uint16_t,k> minimumk{};
-//         void update(uint32_t intval);
-//         void update(double decval);
-//         static uint32_t dec2int(double decval){
-//             uint32_t intval = MAX_UINT16 * decval / max_dec_val;
-//             return intval;
-//         }
-//         static double int2dec(uint32_t intval){
-//             double decval = max_dec_val * intval / MAX_UINT16;
-//             return decval;
-//         }
-//         uint32_t get_spread(){
-//             uint32_t ret_spread = k/int2dec(minimumk[k-1]);
-//             return ret_spread;
-//         }
-//     };
-//     static const uint32_t subtab_num = 3;
-//     static const uint32_t memory = subtab_num * 10;  //kB
-//     static const uint32_t estimator_size = 16 * BJKST_Estimator::k + 32;
-//     static const uint32_t threshold = 300;
-//     static constexpr double max_dec_val = (double)BJKST_Estimator::k/threshold;
-//     static const uint32_t table_size = memory * 1024 * 8 / estimator_size / 3 * 3;
-//     static const uint32_t subtab_size = table_size / 3;
-//     static const array<uint32_t,subtab_num> offsets;
-//     array<BJKST_Estimator,table_size> ss_table;
-//     uint32_t get_flow_spread(string flowid);
-//     int process_flow(string flowid,string element,double max_dec);
-//     bool insert_flow(string flowid,uint32_t insert_pos,array<double,BJKST_Estimator::k> decvals);
-//     void report_superspreaders();
-// };
-// const array<uint32_t,SS_Table::subtab_num> SS_Table::offsets={0, SS_Table::subtab_size, SS_Table::subtab_size*2};
+void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64)
+{
+    uint32_t hashres32 = hahsres64 >> 32;
+    uint32_t table_pos1 = (hashres32 >> 16) % tab_size;
+    uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;
+    hashres32 = hahsres64 & MAX_UINT32;
+    uint32_t innerpos1 = hashres32 & 15;
+    uint32_t innerpos2 = ((hashres32 >> 4) & 15) + 16;
+    uint32_t selected_val1 = min(get_counter_val(HLL_pos[0],innerpos1), get_counter_val(HLL_pos[1],innerpos1));
+    uint32_t selected_val2 = min(get_counter_val(HLL_pos[0],innerpos2), get_counter_val(HLL_pos[1],innerpos2));
+
+    if(hash_table[table_pos1].flowid == "")
+    {
+        hash_table[table_pos1].flowid = flowid;
+        hash_table[table_pos1].selected_counters[0] = selected_val1;
+        hash_table[table_pos1].selected_counters[1] = selected_val2;
+        return;
+    }
+    else if(hash_table[table_pos2].flowid == "")
+    {
+        hash_table[table_pos2].flowid = flowid;
+        hash_table[table_pos2].selected_counters[0] = selected_val1;
+        hash_table[table_pos2].selected_counters[1] = selected_val2;
+        return;
+    }
+
+    double tmp1 = pow(2.0, 0.0 - 1.0/hash_table[table_pos1].selected_counters[0] ) + pow(2.0, 0.0 - 1.0/hash_table[table_pos1].selected_counters[1] );  
+    double tmp2 = pow(2.0, 0.0 - 1.0/hash_table[table_pos2].selected_counters[0] ) + pow(2.0, 0.0 - 1.0/hash_table[table_pos2].selected_counters[1] ); 
+    double current_val = pow(2.0, 0.0 - 1.0/selected_val1) + pow(2.0, 0.0 - 1.0/selected_val2);
+    if(tmp1 > tmp2)
+    {
+        if(tmp1 >= current_val)
+        {
+            hash_table[table_pos1].flowid = flowid;
+            hash_table[table_pos1].selected_counters[0] = selected_val1;
+            hash_table[table_pos1].selected_counters[1] = selected_val2;
+        }
+    }
+    else
+    {
+        if(tmp2 >= current_val)
+        {
+            hash_table[table_pos2].flowid = flowid;
+            hash_table[table_pos2].selected_counters[0] = selected_val1;
+            hash_table[table_pos2].selected_counters[1] = selected_val2;
+        }
+    }
+}
+
+void HLL_Arr::report_superspreaders(uint32_t threshold, set<string>& superspreaders)
+{
+    superspreaders.clear();
+    set<string> checked_flows;
+    for(size_t i = 0;i < tab_size;i++)
+    {
+        string tmp_flowid = hash_table[i].flowid;
+        if(checked_flows.find(tmp_flowid) != checked_flows.end())
+        {
+            continue;
+        } 
+        else
+        {
+            checked_flows.insert(tmp_flowid);
+            uint32_t esti_card = get_spread(tmp_flowid); 
+            if(esti_card >= threshold)
+            {
+                superspreaders.insert(tmp_flowid);
+            }
+        }
+    }
+}
 
 class HLL{
 public:
