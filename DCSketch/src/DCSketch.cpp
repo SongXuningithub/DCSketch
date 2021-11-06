@@ -270,7 +270,8 @@ uint32_t HLL_Arr::get_spread(uint32_t pos)
     for(size_t i = 0;i < register_num;i++)
     {
         uint32_t tmpval = get_counter_val(pos,i);
-        sum_ += 1.0 / (1 << tmpval);
+        //sum_ += 1.0 / (1 << tmpval);
+        sum_ += exp_table[tmpval];
         if(tmpval == 0)
             V_++;
     }
@@ -402,8 +403,6 @@ uint32_t DCSketch::query_spread(string flowid)
     if(ret <= 0)
         ret = 1;
     return ret;
-
-    
 }
 
 // DCSketch::DCSketch(string dataset,string filename)

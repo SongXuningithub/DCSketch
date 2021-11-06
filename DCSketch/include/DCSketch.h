@@ -79,6 +79,7 @@ public:
     static constexpr double LC_thresh = 2.5 * register_num; 
     array<uint8_t,memory * 1024 * 8 / 8> HLL_raw{};
     
+    array<double,1<<register_size> exp_table;
 
     uint32_t get_leading_zeros(uint32_t bitstr);
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
@@ -92,8 +93,8 @@ public:
         string flowid;
         array<uint8_t,2> selected_counters;
     };
-    uint32_t table_mem = 20; //KB
-    uint32_t tab_size = table_mem * 1024 * 8 / (4 + 4 + 32);
+    static const uint32_t table_mem = 20; //KB
+    static const uint32_t tab_size = table_mem * 1024 * 8 / (4 + 4 + 32);
     vector<Table_Entry> hash_table; 
     void insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64);
     void report_superspreaders(uint32_t threshold, set<string>& superspreaders);
@@ -101,6 +102,10 @@ public:
     HLL_Arr()
     {
         hash_table.resize(tab_size);
+        for(size_t i = 0;i < exp_table.size();i++)
+        {
+            exp_table[i] = pow(2.0, 0.0 - i);
+        }
     }
 };
 
@@ -113,23 +118,23 @@ Layer 3:    A hash table which store <key,value> pairs where the key is the flow
 
 void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64)
 {
-    uint32_t hashres32 = hahsres64 >> 32;
-    uint32_t table_pos1 = (hashres32 >> 16) % tab_size;
-    uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;
-    hashres32 = hahsres64 & MAX_UINT32;
+    uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
+    uint32_t table_pos1 = (hashres32 >> 16) % tab_size;     //high 16 bits
+    uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;  //low 16 bits
+    hashres32 = hahsres64 & MAX_UINT32;           //low 32 bits of initial hash result which is 64 bits
     uint32_t innerpos1 = hashres32 & 15;
     uint32_t innerpos2 = ((hashres32 >> 4) & 15) + 16;
     uint32_t selected_val1 = min(get_counter_val(HLL_pos[0],innerpos1), get_counter_val(HLL_pos[1],innerpos1));
     uint32_t selected_val2 = min(get_counter_val(HLL_pos[0],innerpos2), get_counter_val(HLL_pos[1],innerpos2));
 
-    if(hash_table[table_pos1].flowid == "")
+    if(hash_table[table_pos1].flowid == "" || hash_table[table_pos1].flowid == flowid)
     {
         hash_table[table_pos1].flowid = flowid;
         hash_table[table_pos1].selected_counters[0] = selected_val1;
         hash_table[table_pos1].selected_counters[1] = selected_val2;
         return;
     }
-    else if(hash_table[table_pos2].flowid == "")
+    else if(hash_table[table_pos2].flowid == "" || hash_table[table_pos2].flowid == flowid)
     {
         hash_table[table_pos2].flowid = flowid;
         hash_table[table_pos2].selected_counters[0] = selected_val1;
@@ -137,12 +142,15 @@ void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t 
         return;
     }
 
-    double tmp1 = pow(2.0, 0.0 - 1.0/hash_table[table_pos1].selected_counters[0] ) + pow(2.0, 0.0 - 1.0/hash_table[table_pos1].selected_counters[1] );  
-    double tmp2 = pow(2.0, 0.0 - 1.0/hash_table[table_pos2].selected_counters[0] ) + pow(2.0, 0.0 - 1.0/hash_table[table_pos2].selected_counters[1] ); 
-    double current_val = pow(2.0, 0.0 - 1.0/selected_val1) + pow(2.0, 0.0 - 1.0/selected_val2);
+    // double tmp1 = pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[1] );  
+    // double tmp2 = pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[1] ); 
+    // double local_hllval = pow(2.0, 0.0 - selected_val1) + pow(2.0, 0.0 - selected_val2);
+    double tmp1 = exp_table[hash_table[table_pos1].selected_counters[0]] + exp_table[hash_table[table_pos1].selected_counters[1]];
+    double tmp2 = exp_table[hash_table[table_pos2].selected_counters[0]] + exp_table[hash_table[table_pos2].selected_counters[1]]; 
+    double local_hllval = exp_table[selected_val1] + exp_table[selected_val2];
     if(tmp1 > tmp2)
     {
-        if(tmp1 >= current_val)
+        if(tmp1 >= local_hllval)
         {
             hash_table[table_pos1].flowid = flowid;
             hash_table[table_pos1].selected_counters[0] = selected_val1;
@@ -151,7 +159,7 @@ void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t 
     }
     else
     {
-        if(tmp2 >= current_val)
+        if(tmp2 >= local_hllval)
         {
             hash_table[table_pos2].flowid = flowid;
             hash_table[table_pos2].selected_counters[0] = selected_val1;
@@ -175,7 +183,7 @@ void HLL_Arr::report_superspreaders(uint32_t threshold, set<string>& superspread
         {
             checked_flows.insert(tmp_flowid);
             uint32_t esti_card = get_spread(tmp_flowid); 
-            if(esti_card >= threshold)
+            if(19 + esti_card >= threshold)
             {
                 superspreaders.insert(tmp_flowid);
             }

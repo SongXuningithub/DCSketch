@@ -1,8 +1,10 @@
 DCSketch/output
 DCSketch/metadata
+DCSketch/superspreaders
 Distribution_Estimation/files
 rerskt/output
 get_groundtruth
 calc_accuracy
 build
+SpreadSketch/output
 .vscode
