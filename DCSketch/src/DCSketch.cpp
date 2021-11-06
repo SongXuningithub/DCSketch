@@ -82,25 +82,12 @@ bool Bitmap_Arr::add_element(uint32_t bit_pos)
     return false;
 }
 
-bool Bitmap_Arr::process_element(string flowid,string element)
+bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
 {
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER1);
     array<uint32_t,hash_num> L1_pos;
-    for(uint8_t i = 0;i < hash_num;i++)
-    {
-        uint32_t cur_pos;
-        if(i%2==0)
-        {
-            cur_pos = static_cast<uint32_t>(hashres128[i/2]>>32);
-        }
-        else
-        {
-            cur_pos = static_cast<uint32_t>(hashres128[i/2]);
-        }
-        cur_pos %= bitmap_num;
-        L1_pos[i] = cur_pos;
-    }
-    uint32_t hashres32 = str_hash32(flowid + element,HASH_SEED_LAYER1);
+    L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
+    L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
+    uint32_t hashres32 = static_cast<uint32_t>(hash_element[0] >> 32);
     uint32_t update_pos = L1_pos[(hashres32>>16) % hash_num];
     uint8_t bitmap_state = get_bitmap(update_pos);
 #ifdef DEBUG_LAYER1
@@ -142,31 +129,19 @@ bool Bitmap_Arr::process_element(string flowid,string element)
     return all_full;
 }
 
-uint32_t Bitmap_Arr::get_spread(string flowid)
+uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
 {
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_LAYER1);
     array<uint32_t,hash_num> L1_pos;
-    for(uint8_t i = 0;i < L1_pos.size();i++)
-    {
-        uint32_t cur_pos;
-        if(i%2==0)
-        {
-            cur_pos = static_cast<uint32_t>(hashres128[i/2]>>32);
-        }
-        else
-        {
-            cur_pos = static_cast<uint32_t>(hashres128[i/2]);
-        }
-        cur_pos %= bitmap_num;
-        L1_pos[i] = cur_pos;
-    }
+    L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
+    L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
+
     double flow_spread = 0;
     bool all_full = true;
-    for(uint8_t i = 0;i < L1_pos.size();i++)
+    for(size_t i = 0;i < L1_pos.size();i++)
     {
         uint8_t bitmap_state = get_bitmap(L1_pos[i]);
         uint8_t zeros_num = 0;
-        for(uint8_t bit_pos = 0;bit_pos < bitmap_size;bit_pos++)
+        for(size_t bit_pos = 0;bit_pos < bitmap_size;bit_pos++)
         {
             if( (bitmap_state & patterns[bit_pos]) == 0)
                 zeros_num++;
@@ -205,7 +180,7 @@ uint32_t TYPE_MAX()
     return 0;
 }
 
-uint32_t HLL_Arr::get_leading_zeros(uint32_t bitstr)
+uint32_t get_leading_zeros(uint32_t bitstr)
 {
     for(size_t i = 1;i <= 32;i++)
     {
@@ -239,14 +214,13 @@ void HLL_Arr::set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_
     }
 }
 
-void HLL_Arr::process_packet(string flowid,string elementid)
+void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
 {
     //operation on hyperloglog sketch
-    uint32_t hashres32 = str_hash32(elementid,HASH_SEED_2);
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
+    uint32_t hashres32 = static_cast<uint32_t>(hash_element[0]);
     array<uint32_t,2> HLL_pos;
-    HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
-    HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
+    HLL_pos[0] = (hash_flowid[1] >> 32) % HLL_num;
+    HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
     uint32_t rou_x = get_leading_zeros(hashres32) + 1;
     for(size_t i = 0;i < 2;i++)
@@ -260,7 +234,7 @@ void HLL_Arr::process_packet(string flowid,string elementid)
     }
 
     //operation on hash table
-    insert_hashtab(flowid,HLL_pos,hashres128[0]);
+    insert_hashtab(flowid,HLL_pos,hash_flowid[0]);
 }
 
 uint32_t HLL_Arr::get_spread(uint32_t pos)
@@ -285,12 +259,11 @@ uint32_t HLL_Arr::get_spread(uint32_t pos)
     return static_cast<uint32_t>(ret);
 }
 
-uint32_t HLL_Arr::get_spread(string flowid)
+uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
 {
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_1);
     array<uint32_t,2> HLL_pos;
-    HLL_pos[0] = (hashres128[1] >> 32) % HLL_num;
-    HLL_pos[1] = static_cast<uint32_t>(hashres128[1]) % HLL_num;
+    HLL_pos[0] = (hash_flowid[1] >> 32) % HLL_num;
+    HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
     double res;
     double sum_ = 0;
     uint32_t V_ = 0;
@@ -312,27 +285,7 @@ uint32_t HLL_Arr::get_spread(string flowid)
     return static_cast<uint32_t>(res);
 }
 
-
-uint8_t HLL::get_leading_zeros(uint32_t bitstr)
-{
-    for(size_t i = 1;i <= 32;i++)
-    {
-        if( ((bitstr<<i)>>i) != bitstr )
-            return i - 1;
-    }
-    return 32;
-}
-
-void HLL::process_flow(string flowid)
-{
-    uint32_t hashres_32 = str_hash32(flowid,HASH_SEED_1);
-    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
-    hashres_32 = str_hash32(flowid,HASH_SEED_2);
-    uint32_t reg_pos = hashres_32 % register_num;
-    HLL_registers[reg_pos] = max(lz_num , HLL_registers[reg_pos]);
-}
-
-uint32_t HLL::get_cardinality()
+uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers)
 {
     double inv_sum = 0;
     for(size_t i = 0;i < HLL_registers.size();i++)
@@ -353,53 +306,190 @@ uint32_t HLL::get_cardinality()
     return E;
 }
 
-
-
-// void DCSketch::update_L1_card(string flowid,string element)
-// {
-//     L1_ELEM_CARD.process_flow(flowid + element);
-// }
-
-// void DCSketch::update_L2_card(string flowid,string element)
-// {
-//     L2_FLOW_CARD.process_flow(flowid);
-//     L2_ELEM_CARD.process_flow(flowid + element);
-// }
-
-void DCSketch::update_global_HLL(string flowid,string element)
+void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64)
 {
-    FLOW_CARD.process_flow(flowid);
-    ELEM_CARD.process_flow(flowid + element);
+    uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
+    uint32_t table_pos1 = (hashres32 >> 16) % tab_size;     //high 16 bits
+    uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;  //low 16 bits
+    hashres32 = hahsres64 & MAX_UINT32;           //low 32 bits of initial hash result which is 64 bits
+    uint32_t innerpos1 = hashres32 & 15;
+    uint32_t innerpos2 = ((hashres32 >> 4) & 15) + 16;
+    uint32_t selected_val1 = min(get_counter_val(HLL_pos[0],innerpos1), get_counter_val(HLL_pos[1],innerpos1));
+    uint32_t selected_val2 = min(get_counter_val(HLL_pos[0],innerpos2), get_counter_val(HLL_pos[1],innerpos2));
+
+    if(hash_table[table_pos1].flowid == "" || hash_table[table_pos1].flowid == flowid)
+    {
+        hash_table[table_pos1].flowid = flowid;
+        hash_table[table_pos1].selected_counters[0] = selected_val1;
+        hash_table[table_pos1].selected_counters[1] = selected_val2;
+        return;
+    }
+    else if(hash_table[table_pos2].flowid == "" || hash_table[table_pos2].flowid == flowid)
+    {
+        hash_table[table_pos2].flowid = flowid;
+        hash_table[table_pos2].selected_counters[0] = selected_val1;
+        hash_table[table_pos2].selected_counters[1] = selected_val2;
+        return;
+    }
+
+    // double tmp1 = pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[1] );  
+    // double tmp2 = pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[1] ); 
+    // double local_hllval = pow(2.0, 0.0 - selected_val1) + pow(2.0, 0.0 - selected_val2);
+    double tmp1 = exp_table[hash_table[table_pos1].selected_counters[0]] + exp_table[hash_table[table_pos1].selected_counters[1]];
+    double tmp2 = exp_table[hash_table[table_pos2].selected_counters[0]] + exp_table[hash_table[table_pos2].selected_counters[1]]; 
+    double local_hllval = exp_table[selected_val1] + exp_table[selected_val2];
+    if(tmp1 > tmp2)
+    {
+        if(tmp1 >= local_hllval)
+        {
+            hash_table[table_pos1].flowid = flowid;
+            hash_table[table_pos1].selected_counters[0] = selected_val1;
+            hash_table[table_pos1].selected_counters[1] = selected_val2;
+        }
+    }
+    else
+    {
+        if(tmp2 >= local_hllval)
+        {
+            hash_table[table_pos2].flowid = flowid;
+            hash_table[table_pos2].selected_counters[0] = selected_val1;
+            hash_table[table_pos2].selected_counters[1] = selected_val2;
+        }
+    }
+}
+
+void HLL_Arr::report_superspreaders(uint32_t threshold, set<string>& superspreaders)
+{
+    superspreaders.clear();
+    set<string> checked_flows;
+    for(size_t i = 0;i < tab_size;i++)
+    {
+        string tmp_flowid = hash_table[i].flowid;
+        if(checked_flows.find(tmp_flowid) != checked_flows.end())
+        {
+            continue;
+        } 
+        else
+        {
+            checked_flows.insert(tmp_flowid);
+            array<uint64_t,2> hash_flowid = str_hash128(tmp_flowid,HASH_SEED_1);
+            uint32_t esti_card = get_spread(tmp_flowid,hash_flowid); 
+            if(19 + esti_card >= threshold)
+            {
+                superspreaders.insert(tmp_flowid);
+            }
+        }
+    }
+}
+
+void Global_HLLs::update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
+{
+    //mumber of distinct flows
+    uint32_t hashres_32 = static_cast<uint32_t>(hash_flowid[0]);
+    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
+    uint32_t reg_pos = hashres_32 % register_num;
+    Layer1_flows[reg_pos] = max(lz_num , Layer1_flows[reg_pos]);
+    //number of distinct <flow,element> pairs
+    hashres_32 = static_cast<uint32_t>(hash_element[0]);
+    lz_num = get_leading_zeros(hashres_32) + 1;
+    reg_pos = hashres_32 % register_num;
+    Layer1_elements[reg_pos] = max(lz_num , Layer1_elements[reg_pos]);
+}
+
+void Global_HLLs::update_layer2(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
+{
+    //mumber of distinct flows
+    uint32_t hashres_32 = static_cast<uint32_t>(hash_flowid[0]);
+    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
+    uint32_t reg_pos = hashres_32 % register_num;
+    Layer2_flows[reg_pos] = max(lz_num , Layer2_flows[reg_pos]);
+    //number of distinct <flow,element> pairs
+    hashres_32 = static_cast<uint32_t>(hash_element[0]);
+    lz_num = get_leading_zeros(hashres_32) + 1;
+    reg_pos = hashres_32 % register_num;
+    Layer2_elements[reg_pos] = max(lz_num , Layer2_elements[reg_pos]);
+}
+
+uint32_t Global_HLLs::get_number_flows(uint32_t layer)
+{
+    if(layer == LAYER1)
+    {
+        return get_cardinality(Layer1_flows);
+    }
+    else
+    {
+        return get_cardinality(Layer2_flows);
+    }
+}
+
+uint32_t Global_HLLs::get_number_elements(uint32_t layer)
+{
+    if(layer == LAYER1)
+    {
+        return get_cardinality(Layer1_elements);
+    }
+    else
+    {
+        return get_cardinality(Layer2_elements);
+    }
 }
 
 void DCSketch::process_element(string flowid,string element)
 {
-    bool layer1_full = layer1.process_element(flowid,element);
-    update_global_HLL(flowid,element);
+    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
+    array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
+    bool layer1_full = layer1.process_packet(hash_flowid,hash_element);
     if(!layer1_full)
     {
+        global_hlls.update_layer1(hash_flowid,hash_element);
         return;
     }
-    layer2.process_packet(flowid,element);
+    layer2.process_packet(flowid,hash_flowid,hash_element);
+    global_hlls.update_layer2(hash_flowid,hash_element);
 }
 
 void DCSketch::update_mean_error()
 {
-    L1_mean_error = 0;
-    L2_mean_error = 0;
+    uint32_t layer1_flows = global_hlls.get_number_flows(LAYER1);
+    uint32_t layer2_flows = global_hlls.get_number_flows(LAYER2);
+    if(layer1_flows > layer1.thresh_ratio * layer1.bitmap_num)
+        layer1_err_remove = true;
+    else
+        layer1_err_remove = false;
+    if(layer2_flows > layer2.thresh_ratio * layer2.HLL_num)
+        layer2_err_remove = true;
+    else
+        layer2_err_remove = false;
+    
+    if(layer1_err_remove)
+        L1_mean_error = global_hlls.get_number_elements(LAYER1) / layer1.bitmap_num;
+    else
+        L1_mean_error = 0;
+    if(layer2_err_remove)
+        L2_mean_error = L1_mean_error * 2 + global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
+    else
+        L2_mean_error = L1_mean_error * 2;
+    cout<<"layer1 flows: "<<layer1_flows<<endl;
+    cout<<"layer2 flows: "<<layer2_flows<<endl;
+    cout<<"layer1_err_remove: "<<layer1_err_remove<<" L1_mean_error: "<<L1_mean_error<<endl;
+    cout<<"layer2_err_remove: "<<layer2_err_remove<<" L2_mean_error: "<<L2_mean_error<<endl;
     return;
 }
 
 uint32_t DCSketch::query_spread(string flowid)
 {
-    uint32_t spread_layer1 = layer1.get_spread(flowid);
+    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
+    uint32_t spread_layer1 = layer1.get_spread(flowid,hash_flowid) - L1_mean_error * 2;
+    int ret;
     if(spread_layer1 != BITMAP_FULL_FLAG)
     {
-        return spread_layer1;
+        ret = spread_layer1;
     }
-    int spread_layer2 = layer2.get_spread(flowid);
-    spread_layer2 -= (int)L2_mean_error * 2;
-    int ret = spread_layer2 + 19 - L1_mean_error * 2;
+    else
+    {
+        int spread_layer2 = layer2.get_spread(flowid,hash_flowid) - L2_mean_error;
+        ret = spread_layer2 + spread_layer1;
+    }
     if(ret <= 0)
         ret = 1;
     return ret;

@@ -15,7 +15,7 @@ void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
 int main()
 {
-//#define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_PERFLOW_SPREAD 1
 #define OUTPUT_SUPER_SPREADERS 1
 //#define OUTPUT_SKETCH 1
     DCSketch dcsketch;
@@ -38,8 +38,6 @@ int main()
         }
     }
     dcsketch.update_mean_error();
-    cout<<"number of flows: "<<dcsketch.FLOW_CARD.get_cardinality()<<endl;
-    cout<<"number of elements: "<<dcsketch.ELEM_CARD.get_cardinality()<<endl;
 
 #ifdef OUTPUT_PERFLOW_SPREAD
     write_perflow_spread(dataset,filename,dcsketch);
@@ -61,7 +59,7 @@ int main()
 
 void write_sketch(string dataset,string filename,DCSketch& dcsketch)
 {
-    string ofile_path = "../../DCSketch/metadata/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/MetaData/" + dataset + "/";
     ofstream ofile_hand;
     ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "sketch.txt");
     if(!ofile_hand)
@@ -88,7 +86,7 @@ void write_sketch(string dataset,string filename,DCSketch& dcsketch)
 void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
 {
     string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
-    string ofile_path = "../../DCSketch/output/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
@@ -113,7 +111,7 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
 
 void write_superspreaders(string dataset,string filename,set<string>& superspreaders)
 {
-    string ofile_path = "../../DCSketch/superspreaders/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/SuperSpreaders/" + dataset + "/";
     ofstream ofile_hand;
     ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
     if(!ofile_hand)
