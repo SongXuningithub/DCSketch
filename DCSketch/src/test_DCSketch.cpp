@@ -17,12 +17,12 @@ int main()
 {
 #define OUTPUT_PERFLOW_SPREAD 1
 //#define OUTPUT_SUPER_SPREADERS 1
-#define OUTPUT_SKETCH 1
+//#define OUTPUT_SKETCH 1
     DCSketch dcsketch;
-    string dataset = "MAWI"; //"CAIDA";
+    string dataset = "CAIDA";
     //string filename = "imc_merge_0000";
-    //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00000";
+    string filename = "CAIDA_frag_0000";
+    //string filename = "pkts_frag_00000";
     PCAP_SESSION session(dataset,filename);
     IP_PACKET cur_packet;
     string srcip,dstip;

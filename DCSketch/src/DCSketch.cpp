@@ -234,7 +234,7 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     }
 
     //operation on hash table
-    //insert_hashtab(flowid,HLL_pos,hash_flowid[0]);
+    insert_hashtab(flowid,HLL_pos,hash_flowid[0]);
 }
 
 uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
@@ -250,7 +250,8 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
         uint32_t tmpval_0 = get_counter_val(HLL_pos[0],i);
         uint32_t tmpval_1 = get_counter_val(HLL_pos[1],i);
         uint32_t tmpval = min(tmpval_0 , tmpval_1) ;//tmpval_0 < tmpval_1 ? tmpval_0 : tmpval_1;
-        sum_ += 1.0 / (1 << tmpval);
+        //sum_ += 1.0 / (1 << tmpval);
+        sum_ += exp_table[tmpval];
         if(tmpval == 0)
             V_++;
     }
@@ -466,11 +467,11 @@ void DCSketch::update_mean_error()
     else
         L1_mean_error = 0;
     if(layer2_err_remove)
-        L2_mean_error = L1_mean_error * 2 + global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
+        L2_mean_error = 1503;//global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
     else
-        L2_mean_error = L1_mean_error * 2;
-    cout<<"layer1 flows: "<<layer1_flows<<endl;
-    cout<<"layer2 flows: "<<layer2_flows<<endl;
+        L2_mean_error = 0;
+    cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<global_hlls.get_number_elements(LAYER1)<<endl;
+    cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<global_hlls.get_number_elements(LAYER2)<<endl;
     cout<<"layer1_err_remove: "<<layer1_err_remove<<" L1_mean_error: "<<L1_mean_error<<endl;
     cout<<"layer2_err_remove: "<<layer2_err_remove<<" L2_mean_error: "<<L2_mean_error<<endl;
     return;
