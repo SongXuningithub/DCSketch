@@ -16,8 +16,8 @@ void write_superspreaders(string dataset,string filename,set<string>& supersprea
 int main()
 {
 #define OUTPUT_PERFLOW_SPREAD 1
-#define OUTPUT_SUPER_SPREADERS 1
-//#define OUTPUT_SKETCH 1
+//#define OUTPUT_SUPER_SPREADERS 1
+#define OUTPUT_SKETCH 1
     DCSketch dcsketch;
     string dataset = "MAWI"; //"CAIDA";
     //string filename = "imc_merge_0000";
@@ -51,7 +51,7 @@ int main()
 #endif
     
 #ifdef OUTPUT_SKETCH
-    write_HLL_distribution(dataset,filename,dcsketch);
+    //write_HLL_distribution(dataset,filename,dcsketch);
     write_sketch(dataset,filename,dcsketch);
 #endif
     return 0;
