@@ -7,11 +7,12 @@ void write_res(string dataset,string filename,set<string>& superspreaders);
 int main()
 {
     SpreadSketch ss(1024);
-    string dataset = "MAWI"; 
+    string dataset = "KAGGLE"; 
     //string filename = "imc_merge_0000";
     //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00000";
-    PCAP_SESSION session(dataset,filename);
+    //string filename = "pkts_frag_00000";
+    string filename = "Dataset-Unicauca";
+    PCAP_SESSION session(dataset,filename,CSV_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     

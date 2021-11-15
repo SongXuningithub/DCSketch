@@ -9,14 +9,14 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-void write_res(string filename,RerSkt& rersketch);
+void write_res(string dataset,string filename,RerSkt& rersketch);
 
 int main()
 {
-    string dataset = "IMC";
+    string dataset = "KAGGLE";
     //string filename = "CAIDA_frag_0000";
-    string filename = "imc_merge_0000";
-    PCAP_SESSION session(dataset,filename);
+    string filename = "Dataset-Unicauca";
+    PCAP_SESSION session(dataset,filename,CSV_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     RerSkt rerskt;
@@ -38,16 +38,14 @@ int main()
     //     checker.record_result((uint32_t)flow_spread);
     //     //checker.record_full_result(flow_spread,dcsketch.layer1);
     // }
-    write_res(filename,rerskt);
+    write_res(dataset,filename,rerskt);
     return 0;
 }
 
-void write_res(string filename,RerSkt& rersketch)
+void write_res(string dataset,string filename,RerSkt& rersketch)
 {
-    // string ifile_path = "../../get_groundtruth/truth/CAIDA/";
-    // string ofile_path = "../../rerskt/output/CAIDA/";
-    string ifile_path = "../../get_groundtruth/truth/IMC/";
-    string ofile_path = "../../rerskt/output/IMC/";
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    string ofile_path = "../../rerskt/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");

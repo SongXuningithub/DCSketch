@@ -6,6 +6,7 @@
 #include <pcap.h>
 #include <iostream>
 #include <string>
+#include <fstream>
 using namespace std;
 
 struct my_ip{
@@ -82,6 +83,8 @@ struct my_ip{
 #define SIZE_ETHERNET 14
 
 class IP_PACKET{
+#define PCAP_FILE 1
+#define CSV_FILE 2
 public:
     uint8_t srcdot[4];
     uint8_t dstdot[4];
@@ -89,6 +92,8 @@ public:
     uint32_t dst;
     void setsrc(uint32_t val);
     void setdst(uint32_t val);
+	void setsrc(string str);
+    void setdst(string str);
 	void show_ip();
 	string get_ipstr();
 	string get_srcip();
@@ -100,20 +105,37 @@ class PCAP_SESSION{
 
 private:
     string data_path = "/home/xun/dataset/";
+	int file_type;
+
     //variables for pcap session
     char ebuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap_session;// = pcap_open_offline(pcap_file.c_str(), ebuf);
     struct pcap_pkthdr* pkthdr;
     //struct sniff_ip* ip_pkt;  
     struct my_ip* ip_pkt;
+
+	//variables for csv session
+	ifstream csv_file;
+
     uint32_t pkt_num = 0;
     bool eof_flag = false;
 
 public:
-	PCAP_SESSION(string dataset,string filename)
+	PCAP_SESSION(string dataset,string filename,int file_type_)
 	{
-		string pcap_file = data_path + dataset + "/" + filename + ".pcap";
-		pcap_session = pcap_open_offline(pcap_file.c_str(), ebuf);
+		file_type = file_type_;
+		if(file_type == PCAP_FILE)
+		{
+			string pcap_file = data_path + dataset + "/" + filename + ".pcap";
+			pcap_session = pcap_open_offline(pcap_file.c_str(), ebuf);
+		}
+		else if(file_type == CSV_FILE)
+		{
+			string csv_file_name = data_path + dataset + "/" + filename + ".csv";
+			csv_file.open(csv_file_name);
+			string head_line;
+			getline(csv_file,head_line);
+		}
 	}
     int get_packet(IP_PACKET& ret_pkt);
     bool eof(){return eof_flag;}

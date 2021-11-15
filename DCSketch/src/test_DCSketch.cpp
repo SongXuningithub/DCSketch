@@ -15,16 +15,16 @@ void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
 int main()
 {
-//#define OUTPUT_PERFLOW_SPREAD 1
-//#define OUTPUT_SUPER_SPREADERS 1
-#define OUTPUT_SKETCH 1
+#define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_SUPER_SPREADERS 1
+//#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
     DCSketch dcsketch;
-    string dataset = "MAWI";
+    string dataset = "KAGGLE";
     //string filename = "imc_merge_0000";
     //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00000";
-    PCAP_SESSION session(dataset,filename);
+    string filename = "Dataset-Unicauca";
+    PCAP_SESSION session(dataset,filename,CSV_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
