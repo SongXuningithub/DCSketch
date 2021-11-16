@@ -20,11 +20,11 @@ int main()
 //#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
     DCSketch dcsketch;
-    string dataset = "KAGGLE";
+    string dataset = "CAIDA";
     //string filename = "imc_merge_0000";
-    //string filename = "CAIDA_frag_0000";
-    string filename = "Dataset-Unicauca";
-    PCAP_SESSION session(dataset,filename,CSV_FILE);
+    string filename = "CAIDA_frag_0000";
+    //string filename = "Dataset-Unicauca";
+    PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
@@ -32,7 +32,8 @@ int main()
     {
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
-        dcsketch.process_element(srcip,dstip);
+        //dcsketch.process_element(srcip,dstip);
+        dcsketch.process_element(dstip,srcip);
         if(session.proc_num()%1000000 == 0)
         {
             cout<<"process packet "<<session.proc_num()<<endl;
@@ -68,7 +69,7 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
     if(!ifile_hand || !ofile_hand)
     {
         cout<<"fail to open files."<<endl;
@@ -165,7 +166,7 @@ void write_superspreaders(string dataset,string filename,set<string>& supersprea
 {
     string ofile_path = "../../DCSketch/output/SuperSpreaders/" + dataset + "/";
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
     if(!ofile_hand)
     {
         cout<<"fail to open files."<<endl;
