@@ -7,4 +7,5 @@ get_groundtruth
 calc_accuracy
 build
 SpreadSketch/output
+Vector_BF/output
 .vscode

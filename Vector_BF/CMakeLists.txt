@@ -18,3 +18,14 @@ target_link_libraries(
     PUBLIC
     hashfunc
 )
+
+add_executable(
+    test_VBF ${CMAKE_CURRENT_SOURCE_DIR}/src/test_VBF.cpp
+)
+
+target_link_libraries(
+    test_VBF
+    PUBLIC
+    ${PROJECT_NAME}
+    mylibpcap
+)
