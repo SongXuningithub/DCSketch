@@ -129,13 +129,13 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     return all_full;
 }
 
-uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
+double Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
 {
     array<uint32_t,hash_num> L1_pos;
     L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
     L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
 
-    double flow_spread = 0;
+    double flow_spread = 30;
     bool all_full = true;
     for(size_t i = 0;i < L1_pos.size();i++)
     {
@@ -146,13 +146,13 @@ uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
             if( (bitmap_state & patterns[bit_pos]) == 0)
                 zeros_num++;
         }
-        flow_spread += spreads[zeros_num];
+        flow_spread = min(spreads[zeros_num] , flow_spread);
         if(zeros_num > 1)
             all_full = false;
     }
     if(all_full)
         return BITMAP_FULL_FLAG;
-    return static_cast<uint8_t>(flow_spread);
+    return flow_spread;
 }
 
 uint32_t Bitmap_Arr::get_spread(uint32_t pos)
@@ -219,18 +219,20 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     //operation on hyperloglog sketch
     uint32_t hashres32 = static_cast<uint32_t>(hash_element[0]);
     array<uint32_t,2> HLL_pos;
-    HLL_pos[0] = (hash_flowid[1] >> 32) % HLL_num;
+    HLL_pos[0] = static_cast<uint32_t>(hash_flowid[1] >> 32) % HLL_num;
     HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
     uint32_t rou_x = get_leading_zeros(hashres32) + 1;
-    for(size_t i = 0;i < 2;i++)
+    uint32_t update_pos;
+    if(hash_element[0]>>63)
+        update_pos = HLL_pos[0];
+    else
+        update_pos = HLL_pos[1];
+    rou_x = rou_x <= 15 ? rou_x : 15;
+    uint32_t bucket_val = get_counter_val(update_pos,bucket_pos);
+    if(bucket_val < rou_x)
     {
-        rou_x = rou_x <= 15 ? rou_x : 15;
-        uint32_t bucket_val = get_counter_val(HLL_pos[i],bucket_pos);
-        if(bucket_val < rou_x)
-        {
-            set_counter_val(HLL_pos[i],bucket_pos,rou_x);
-        }
+        set_counter_val(update_pos,bucket_pos,rou_x);
     }
 
     //operation on hash table
@@ -240,28 +242,43 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
 uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
 {
     array<uint32_t,2> HLL_pos;
-    HLL_pos[0] = (hash_flowid[1] >> 32) % HLL_num;
+    HLL_pos[0] = static_cast<uint32_t>(hash_flowid[1] >> 32) % HLL_num;
     HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
-    double res;
+
+    double res_1;
     double sum_ = 0;
     uint32_t V_ = 0;
     for(size_t i = 0;i < register_num;i++)
     {
-        uint32_t tmpval_0 = get_counter_val(HLL_pos[0],i);
-        uint32_t tmpval_1 = get_counter_val(HLL_pos[1],i);
-        uint32_t tmpval = min(tmpval_0 , tmpval_1) ;//tmpval_0 < tmpval_1 ? tmpval_0 : tmpval_1;
-        //sum_ += 1.0 / (1 << tmpval);
+        uint32_t tmpval = get_counter_val(HLL_pos[0],i);
         sum_ += exp_table[tmpval];
         if(tmpval == 0)
             V_++;
     }
-    res = alpha_m_sqm / sum_;
-    if(res <= LC_thresh)
+    res_1 = alpha_m_sqm / sum_;
+    if(res_1 <= LC_thresh)
     {
         if(V_ > 0)
-            res = register_num * log(register_num / (double)V_);
+            res_1 = register_num * log(register_num / (double)V_);
     }
-    return static_cast<uint32_t>(res);
+
+    double res_2;
+    sum_ = 0;
+    V_ = 0;
+    for(size_t i = 0;i < register_num;i++)
+    {
+        uint32_t tmpval = get_counter_val(HLL_pos[1],i);
+        sum_ += exp_table[tmpval];
+        if(tmpval == 0)
+            V_++;
+    }
+    res_2 = alpha_m_sqm / sum_;
+    if(res_2 <= LC_thresh)
+    {
+        if(V_ > 0)
+            res_2 = register_num * log(register_num / (double)V_);
+    }
+    return static_cast<uint32_t>(min(res_1,res_2));
 }
 
 uint32_t HLL_Arr::get_spread(uint32_t pos)
@@ -366,28 +383,28 @@ void Global_HLLs::update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2
 {
     //mumber of distinct flows
     uint32_t hashres_32 = static_cast<uint32_t>(hash_flowid[0]);
-    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
+    uint8_t lz_num = get_leading_zeros(hashres_32);
     uint32_t reg_pos = hashres_32 % register_num;
-    Layer1_flows[reg_pos] = max(lz_num , Layer1_flows[reg_pos]);
+    Layer1_flows[reg_pos] = max( static_cast<uint8_t>(lz_num + 1), Layer1_flows[reg_pos]);
     //number of distinct <flow,element> pairs
     hashres_32 = static_cast<uint32_t>(hash_element[0]);
-    lz_num = get_leading_zeros(hashres_32) + 1;
+    lz_num = get_leading_zeros(hashres_32);
     reg_pos = hashres_32 % register_num;
-    Layer1_elements[reg_pos] = max(lz_num , Layer1_elements[reg_pos]);
+    Layer1_elements[reg_pos] = max(static_cast<uint8_t>(lz_num + 1) , Layer1_elements[reg_pos]);
 }
 
 void Global_HLLs::update_layer2(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
 {
     //mumber of distinct flows
     uint32_t hashres_32 = static_cast<uint32_t>(hash_flowid[0]);
-    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
+    uint8_t lz_num = get_leading_zeros(hashres_32);
     uint32_t reg_pos = hashres_32 % register_num;
-    Layer2_flows[reg_pos] = max(lz_num , Layer2_flows[reg_pos]);
+    Layer2_flows[reg_pos] = max(static_cast<uint8_t>(lz_num + 1) , Layer2_flows[reg_pos]);
     //number of distinct <flow,element> pairs
     hashres_32 = static_cast<uint32_t>(hash_element[0]);
-    lz_num = get_leading_zeros(hashres_32) + 1;
+    lz_num = get_leading_zeros(hashres_32);
     reg_pos = hashres_32 % register_num;
-    Layer2_elements[reg_pos] = max(lz_num , Layer2_elements[reg_pos]);
+    Layer2_elements[reg_pos] = max(static_cast<uint8_t>(lz_num + 1) , Layer2_elements[reg_pos]);
 }
 
 uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers)
@@ -395,7 +412,7 @@ uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers
     double inv_sum = 0;
     for(size_t i = 0;i < HLL_registers.size();i++)
     {
-        inv_sum += pow(2,0-HLL_registers[i]);
+        inv_sum += pow(2,0-(int)HLL_registers[i]);
     }
     double E = alpha_m * 128 * 128 / inv_sum;
     if(E <= 2.5 * 128)
@@ -453,6 +470,8 @@ void DCSketch::update_mean_error()
 {
     uint32_t layer1_flows = global_hlls.get_number_flows(LAYER1);
     uint32_t layer2_flows = global_hlls.get_number_flows(LAYER2);
+    uint32_t layer1_elements = global_hlls.get_number_elements(LAYER1);
+    uint32_t layer2_elements = global_hlls.get_number_elements(LAYER2);
     if(layer1_flows > layer1.thresh_ratio * layer1.bitmap_num)
         layer1_err_remove = true;
     else
@@ -463,11 +482,11 @@ void DCSketch::update_mean_error()
         layer2_err_remove = false;
     
     if(layer1_err_remove)
-        L1_mean_error = global_hlls.get_number_elements(LAYER1) / layer1.bitmap_num;
+        L1_mean_error = Error_RMV[layer1_elements/layer1.bitmap_num];
     else
         L1_mean_error = 0;
     if(layer2_err_remove)
-        L2_mean_error = 1503;//global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
+        L2_mean_error = Error_RMV[layer2_elements/layer2.HLL_num];//global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
     else
         L2_mean_error = 0;
     cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<global_hlls.get_number_elements(LAYER1)<<endl;
@@ -480,16 +499,16 @@ void DCSketch::update_mean_error()
 uint32_t DCSketch::query_spread(string flowid)
 {
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
-    int spread_layer1 = layer1.get_spread(flowid,hash_flowid);
+    double spread_layer1 = layer1.get_spread(flowid,hash_flowid);
     int ret;
     if(spread_layer1 != BITMAP_FULL_FLAG)
     {
-        ret = spread_layer1 - L1_mean_error * 2;
+        ret = round((spread_layer1 - L1_mean_error) * 2);
     }
     else
     {
         int spread_layer2 = layer2.get_spread(flowid,hash_flowid);
-        ret = (spread_layer2 - L2_mean_error) + (19 - L1_mean_error * 2);
+        ret = 2 * (spread_layer2 - L2_mean_error) + (19 - L1_mean_error * 2);
     }
     if(ret <= 0)
         ret = 1;

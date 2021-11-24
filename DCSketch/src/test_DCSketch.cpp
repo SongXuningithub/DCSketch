@@ -13,6 +13,7 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
+bool per_src_flow = false;
 int main()
 {
 #define OUTPUT_PERFLOW_SPREAD 1
@@ -24,6 +25,7 @@ int main()
     //string filename = "imc_merge_0000";
     string filename = "CAIDA_frag_0000";
     //string filename = "Dataset-Unicauca";
+    //string filename = "pkts_frag_00000";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
@@ -32,8 +34,10 @@ int main()
     {
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
-        //dcsketch.process_element(srcip,dstip);
-        dcsketch.process_element(dstip,srcip);
+        if (per_src_flow)
+            dcsketch.process_element(srcip,dstip);
+        else
+            dcsketch.process_element(dstip,srcip);
         if(session.proc_num()%1000000 == 0)
         {
             cout<<"process packet "<<session.proc_num()<<endl;
@@ -68,8 +72,18 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
     string ofile_path = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
+    
+    if(per_src_flow)
+    {
+        ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + ".txt");
+        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    }
+    else
+    {
+        ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + "rev.txt");
+        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
+    }
+       
     if(!ifile_hand || !ofile_hand)
     {
         cout<<"fail to open files."<<endl;
@@ -166,7 +180,10 @@ void write_superspreaders(string dataset,string filename,set<string>& supersprea
 {
     string ofile_path = "../../DCSketch/output/SuperSpreaders/" + dataset + "/";
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
+    if(per_src_flow)
+        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    else
+        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
     if(!ofile_hand)
     {
         cout<<"fail to open files."<<endl;

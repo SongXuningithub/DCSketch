@@ -5,6 +5,7 @@
 #include<iostream>
 #include<cmath>
 #include<string>
+#include<fstream>
 #include<array>
 #include<memory>
 #include<vector>
@@ -42,7 +43,7 @@ public:
     uint32_t raw[memory*1024*8/32];
     array<uint8_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
-#define BITMAP_FULL_FLAG 435
+#define BITMAP_FULL_FLAG 435.0
     Bitmap_Arr();
     static constexpr double thresh_ratio = 1.256 / 2;
     
@@ -50,7 +51,7 @@ public:
     bool check_bitmap_full(uint8_t input_bitmap);
     bool add_element(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
-    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid);
+    double get_spread(string flowid, array<uint64_t,2>& hash_flowid);
     uint32_t get_spread(uint32_t pos);
 };
 
@@ -120,6 +121,7 @@ public:
     array<uint8_t,register_num> Layer1_elements{};
     array<uint8_t,register_num> Layer2_flows{};
     array<uint8_t,register_num> Layer2_elements{};
+    Global_HLLs();
     void update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     void update_layer2(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     void process_flow(string flowid);
@@ -130,21 +132,52 @@ public:
     uint32_t get_number_elements(uint32_t layer);
 };
 
+Global_HLLs::Global_HLLs()
+{
+    for(size_t i = 0;i < register_num;i++)
+    {
+        Layer1_flows[i] = 0;
+        Layer1_elements[i] = 0;
+        Layer2_flows[i] = 0;
+        Layer2_elements[i] = 0;
+    }
+}
+
 class DCSketch{
 public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
     Global_HLLs global_hlls;
-
+    array<uint32_t,2001> Error_RMV;
     bool layer1_err_remove;
     bool layer2_err_remove;
     uint32_t L1_mean_error;
     uint32_t L2_mean_error;
-    
+    DCSketch();
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void update_mean_error();
 };
+
+DCSketch::DCSketch()
+{
+    string ifile_name = "../../DCSketch/support/error_removal.txt";
+    ifstream ifile_hand;
+    ifile_hand = ifstream(ifile_name);
+    if(!ifile_hand)
+    {
+        cout<<"fail to open support files."<<endl;
+        return;
+    }
+    while(!ifile_hand.eof())
+    {
+        uint32_t ratio;
+        uint32_t error_val;
+        ifile_hand >> ratio;
+        ifile_hand >> error_val;
+        Error_RMV[ratio] = error_val;
+    }
+}
 
 
 
