@@ -1,6 +1,6 @@
-#include "MurmurHash3.h"
+#include "hashfunc.h"
 #include "mylibpcap.h"
-#include "rerskt.h"
+#include "bSkt.h"
 #include <iostream>
 #include <set>
 #include <memory>
@@ -10,10 +10,11 @@
 #include <ctime>
 using std::unique_ptr;
 
-void write_res(string dataset,string filename,RerSkt& rersketch);
+void write_res(string dataset,string filename,bSkt& rersketch);
 bool per_src_flow = true;
 int main()
 {
+    
     string dataset = "MAWI";
     //string filename = "CAIDA_frag_0000";
     //string filename = "split0000 (1)";
@@ -21,18 +22,18 @@ int main()
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
-    RerSkt rerskt;
-    
+    bSkt bskt;
+
     clock_t startTime,endTime;
     startTime = clock();
     while(int status = session.get_packet(cur_packet))
     {
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
-        if(per_src_flow)
-            rerskt.process_flow(srcip,dstip);
+        if (per_src_flow)
+            bskt.process_packet(srcip,dstip);
         else
-            rerskt.process_flow(dstip,srcip);
+            bskt.process_packet(dstip,srcip);
         if(session.proc_num()%1000000 == 0)
         {
             cout<<"process packet "<<session.proc_num()<<endl;
@@ -40,23 +41,14 @@ int main()
     }
     endTime = clock();
     cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-    // string flow_id;
-    // while(bool iseof = checker.query_flow(flow_id))
-    // {
-    //     int flow_spread = rerskt.get_flow_spread(flow_id);
-    //     flow_spread = max(0,flow_spread);
-    //     checker.record_result((uint32_t)flow_spread);
-    //     //checker.record_full_result(flow_spread,dcsketch.layer1);
-    // }
-
-    //write_res(dataset,filename,rerskt);
+    //write_res(dataset,filename,bskt);
     return 0;
 }
 
-void write_res(string dataset,string filename,RerSkt& rersketch)
+void write_res(string dataset,string filename,bSkt& bskt)
 {
     string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
-    string ofile_path = "../../rerskt/output/" + dataset + "/";
+    string ofile_path = "../../bSkt/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     if(per_src_flow)
@@ -80,7 +72,7 @@ void write_res(string dataset,string filename,RerSkt& rersketch)
         uint32_t spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
-        int estimated_spread = rersketch.get_flow_spread(flowid);
+        int estimated_spread = bskt.get_flow_spread(flowid);
         estimated_spread = estimated_spread > 0 ? estimated_spread : 0;
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread<<endl;
     }

@@ -23,7 +23,7 @@ int main()
     DCSketch dcsketch;
     string dataset = "CAIDA";
     //string filename = "imc_merge_0000";
-    string filename = "CAIDA_frag_0000";
+    string filename = "split0000 (1)";
     //string filename = "Dataset-Unicauca";
     //string filename = "pkts_frag_00000";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);

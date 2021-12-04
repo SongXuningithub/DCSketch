@@ -62,6 +62,28 @@ void RerSkt::process_flow(string flowid,string element)
     {
         table2[HLL_pos].process_element(element,unit_index);
     }
+    
+    //detect superspreaders
+    if(DETECT_SUPERSPREADER == false)
+        return;
+    uint32_t flowsrpead = get_flow_spread(flowid);
+    FLOW tmpflow;
+    tmpflow.flowid = flowid;  tmpflow.flow_spread = flowsrpead;
+    if(heap.size() < heap_size)
+    {
+        heap.push_back(tmpflow);
+        std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+    }
+    else
+    {
+        if(flowsrpead >= heap[0].flow_spread)
+        {
+            pop_heap(heap.begin(), heap.end(), MinHeapCmp());
+            heap.pop_back();
+            heap.push_back(tmpflow);
+            std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+        }
+    }
 }
 
 int RerSkt::get_flow_spread(string flowid)
