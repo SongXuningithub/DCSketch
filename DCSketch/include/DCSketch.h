@@ -86,12 +86,14 @@ public:
     class Table_Entry{
     public:
         string flowid;
-        array<uint8_t,2> selected_counters;
+        uint8_t selected_sum;
+        static const uint32_t selected_num = 4;
+        //array<uint8_t,2> selected_counters;
     };
-    static const uint32_t table_mem = 20; //KB
-    static const uint32_t tab_size = table_mem * 1024 * 8 / (4 + 4 + 32);
+    static const uint32_t table_mem = 50; //KB
+    static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);
     vector<Table_Entry> hash_table; 
-    void insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64);
+    void insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64);
     void report_superspreaders(uint32_t threshold, set<string>& superspreaders);
     
     HLL_Arr()

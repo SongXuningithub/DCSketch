@@ -3,6 +3,7 @@
 #include "mylibpcap.h"
 #include <iostream>
 #include <fstream>
+#include <ctime>
 #include <set>
 #include <memory>
 #include <algorithm>
@@ -13,23 +14,24 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
-bool per_src_flow = false;
+bool per_src_flow = true;
 int main()
 {
-#define OUTPUT_PERFLOW_SPREAD 1
+//#define OUTPUT_PERFLOW_SPREAD 1
 #define OUTPUT_SUPER_SPREADERS 1
 //#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
     DCSketch dcsketch;
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
     //string filename = "imc_merge_0000";
-    string filename = "split0000 (1)";
+    //string filename = "split0000 (1)";
     //string filename = "Dataset-Unicauca";
-    //string filename = "pkts_frag_00000";
+    string filename = "pkts_frag_00000";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
-    
+    clock_t startTime,endTime;
+    startTime = clock();
     while(int status = session.get_packet(cur_packet))
     {
         srcip = cur_packet.get_srcip();
@@ -44,13 +46,15 @@ int main()
         }
     }
     dcsketch.update_mean_error();
+    endTime = clock();
+    cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 
 #ifdef OUTPUT_PERFLOW_SPREAD
     write_perflow_spread(dataset,filename,dcsketch);
 #endif
 
 #ifdef OUTPUT_SUPER_SPREADERS
-    uint32_t threshold = 1000;
+    uint32_t threshold = 600;//1000;
     set<string> superspreaders;
     dcsketch.layer2.report_superspreaders(threshold, superspreaders);
     write_superspreaders(dataset,filename,superspreaders);

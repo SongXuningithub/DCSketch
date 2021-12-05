@@ -233,10 +233,15 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     if(bucket_val < rou_x)
     {
         set_counter_val(update_pos,bucket_pos,rou_x);
+        if (bucket_pos < Table_Entry::selected_num) 
+        {
+            //operation on hash table
+            uint8_t selected_sum1 = get_counter_val(HLL_pos[0],0)+get_counter_val(HLL_pos[0],1)+get_counter_val(HLL_pos[0],2)+get_counter_val(HLL_pos[0],3);
+            uint8_t selected_sum2 = get_counter_val(HLL_pos[1],0)+get_counter_val(HLL_pos[1],1)+get_counter_val(HLL_pos[1],2)+get_counter_val(HLL_pos[1],3);
+            uint8_t selected_sum = min(selected_sum1,selected_sum2);
+            insert_hashtab(flowid,selected_sum,hash_flowid[0]);
+        }
     }
-
-    //operation on hash table
-    insert_hashtab(flowid,HLL_pos,hash_flowid[0]);
 }
 
 uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
@@ -303,54 +308,42 @@ uint32_t HLL_Arr::get_spread(uint32_t pos)
     return static_cast<uint32_t>(ret);
 }
 
-void HLL_Arr::insert_hashtab(string flowid, array<uint32_t,2> HLL_pos, uint64_t hahsres64)
+void HLL_Arr::insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64)
 {
     uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
     uint32_t table_pos1 = (hashres32 >> 16) % tab_size;     //high 16 bits
     uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;  //low 16 bits
-    hashres32 = hahsres64 & MAX_UINT32;           //low 32 bits of initial hash result which is 64 bits
-    uint32_t innerpos1 = hashres32 & 15;
-    uint32_t innerpos2 = ((hashres32 >> 4) & 15) + 16;
-    uint32_t selected_val1 = min(get_counter_val(HLL_pos[0],innerpos1), get_counter_val(HLL_pos[1],innerpos1));
-    uint32_t selected_val2 = min(get_counter_val(HLL_pos[0],innerpos2), get_counter_val(HLL_pos[1],innerpos2));
+
 
     if(hash_table[table_pos1].flowid == "" || hash_table[table_pos1].flowid == flowid)
     {
         hash_table[table_pos1].flowid = flowid;
-        hash_table[table_pos1].selected_counters[0] = selected_val1;
-        hash_table[table_pos1].selected_counters[1] = selected_val2;
+        hash_table[table_pos1].selected_sum = selected_sum;
         return;
     }
     else if(hash_table[table_pos2].flowid == "" || hash_table[table_pos2].flowid == flowid)
     {
         hash_table[table_pos2].flowid = flowid;
-        hash_table[table_pos2].selected_counters[0] = selected_val1;
-        hash_table[table_pos2].selected_counters[1] = selected_val2;
+        hash_table[table_pos2].selected_sum = selected_sum;
         return;
     }
 
-    // double tmp1 = pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos1].selected_counters[1] );  
-    // double tmp2 = pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[0] ) + pow(2.0, 0.0 - hash_table[table_pos2].selected_counters[1] ); 
-    // double local_hllval = pow(2.0, 0.0 - selected_val1) + pow(2.0, 0.0 - selected_val2);
-    double tmp1 = exp_table[hash_table[table_pos1].selected_counters[0]] + exp_table[hash_table[table_pos1].selected_counters[1]];
-    double tmp2 = exp_table[hash_table[table_pos2].selected_counters[0]] + exp_table[hash_table[table_pos2].selected_counters[1]]; 
-    double local_hllval = exp_table[selected_val1] + exp_table[selected_val2];
+    uint8_t tmp1 = hash_table[table_pos1].selected_sum;
+    uint8_t tmp2 = hash_table[table_pos2].selected_sum; 
     if(tmp1 > tmp2)
     {
-        if(tmp1 >= local_hllval)
+        if(selected_sum >= tmp2)
         {
-            hash_table[table_pos1].flowid = flowid;
-            hash_table[table_pos1].selected_counters[0] = selected_val1;
-            hash_table[table_pos1].selected_counters[1] = selected_val2;
+            hash_table[table_pos2].flowid = flowid;
+            hash_table[table_pos2].selected_sum = selected_sum;
         }
     }
     else
     {
-        if(tmp2 >= local_hllval)
+        if(selected_sum >= tmp1)
         {
-            hash_table[table_pos2].flowid = flowid;
-            hash_table[table_pos2].selected_counters[0] = selected_val1;
-            hash_table[table_pos2].selected_counters[1] = selected_val2;
+            hash_table[table_pos1].flowid = flowid;
+            hash_table[table_pos1].selected_sum = selected_sum;
         }
     }
 }
