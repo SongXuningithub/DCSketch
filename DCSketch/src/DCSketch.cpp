@@ -155,6 +155,26 @@ double Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid)
     return flow_spread;
 }
 
+array<uint32_t,2> Bitmap_Arr::get2bitmap_zeronum(array<uint64_t,2>& hash_flowid)
+{
+    array<uint32_t,hash_num> L1_pos;
+    L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
+    L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
+    array<uint32_t,2> ret;
+    for(size_t i = 0;i < 2;i++)
+    {
+        uint8_t bitmap_state = get_bitmap(L1_pos[i]);
+        uint8_t zeros_num = 0;
+        for(size_t bit_pos = 0;bit_pos < bitmap_size;bit_pos++)
+        {
+            if( (bitmap_state & patterns[bit_pos]) == 0)
+                zeros_num++;
+        }
+        ret[i] = zeros_num;
+    }
+    return ret;
+}
+
 uint32_t Bitmap_Arr::get_spread(uint32_t pos)
 {
     uint8_t bitmap_state = get_bitmap(pos);
@@ -308,6 +328,52 @@ uint32_t HLL_Arr::get_spread(uint32_t pos)
     return static_cast<uint32_t>(ret);
 }
 
+array<uint32_t,2> HLL_Arr::get2hll_vals(array<uint64_t,2>& hash_flowid)
+{
+    array<uint32_t,2> HLL_pos;
+    HLL_pos[0] = static_cast<uint32_t>(hash_flowid[1] >> 32) % HLL_num;
+    HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
+
+    double res_1;
+    double sum_ = 0;
+    uint32_t V_ = 0;
+    for(size_t i = 0;i < register_num;i++)
+    {
+        uint32_t tmpval = get_counter_val(HLL_pos[0],i);
+        sum_ += exp_table[tmpval];
+        if(tmpval == 0)
+            V_++;
+    }
+    res_1 = alpha_m_sqm / sum_;
+    if(res_1 <= LC_thresh)
+    {
+        if(V_ > 0)
+            res_1 = register_num * log(register_num / (double)V_);
+    }
+
+    double res_2;
+    sum_ = 0;
+    V_ = 0;
+    for(size_t i = 0;i < register_num;i++)
+    {
+        uint32_t tmpval = get_counter_val(HLL_pos[1],i);
+        sum_ += exp_table[tmpval];
+        if(tmpval == 0)
+            V_++;
+    }
+    res_2 = alpha_m_sqm / sum_;
+    if(res_2 <= LC_thresh)
+    {
+        if(V_ > 0)
+            res_2 = register_num * log(register_num / (double)V_);
+    }
+
+    array<uint32_t,2> ret;
+    ret[0] = static_cast<uint32_t>(res_1);
+    ret[1] = static_cast<uint32_t>(res_2);
+    return ret;
+}
+
 void HLL_Arr::insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64)
 {
     uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
@@ -421,6 +487,16 @@ uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers
     return E;
 }
 
+array<uint8_t,Global_HLLs::register_num> Global_HLLs::HLL_union(array<uint8_t,register_num>& HLL_registers1,array<uint8_t,register_num>& HLL_registers2)
+{
+    array<uint8_t,register_num> vsketch;
+    for(size_t i = 0;i < HLL_registers1.size();i++)
+    {
+        vsketch[i] = max(HLL_registers1[i] , HLL_registers2[i]);
+    }
+    return vsketch;
+}
+
 uint32_t Global_HLLs::get_number_flows(uint32_t layer)
 {
     if(layer == LAYER1)
@@ -461,10 +537,10 @@ void DCSketch::process_element(string flowid,string element)
 
 void DCSketch::update_mean_error()
 {
-    uint32_t layer1_flows = global_hlls.get_number_flows(LAYER1);
-    uint32_t layer2_flows = global_hlls.get_number_flows(LAYER2);
-    uint32_t layer1_elements = global_hlls.get_number_elements(LAYER1);
-    uint32_t layer2_elements = global_hlls.get_number_elements(LAYER2);
+    layer1_flows = global_hlls.get_number_flows(LAYER1);
+    layer2_flows = global_hlls.get_number_flows(LAYER2);
+    layer1_elements = global_hlls.get_number_elements(LAYER1);
+    layer2_elements = global_hlls.get_number_elements(LAYER2);
     if(layer1_flows > layer1.thresh_ratio * layer1.bitmap_num)
         layer1_err_remove = true;
     else
@@ -486,6 +562,10 @@ void DCSketch::update_mean_error()
     cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<global_hlls.get_number_elements(LAYER2)<<endl;
     cout<<"layer1_err_remove: "<<layer1_err_remove<<" L1_mean_error: "<<L1_mean_error<<endl;
     cout<<"layer2_err_remove: "<<layer2_err_remove<<" L2_mean_error: "<<L2_mean_error<<endl;
+    auto vsketch_1 = global_hlls.HLL_union(global_hlls.Layer1_flows , global_hlls.Layer2_flows);
+    auto vsketch_2 = global_hlls.HLL_union(global_hlls.Layer1_elements , global_hlls.Layer2_elements);
+    cout<<"number of flows: " <<global_hlls.get_cardinality(vsketch_1) << endl;
+    cout<<"number of elements: " <<global_hlls.get_cardinality(vsketch_2) << endl;
     return;
 }
 
@@ -506,6 +586,47 @@ uint32_t DCSketch::query_spread(string flowid)
     if(ret <= 0)
         ret = 1;
     return ret;
+}
+
+
+uint32_t DCSketch::query_spread_offline(string flowid)
+{
+    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
+    array<uint32_t,2> bm_zero_num = layer1.get2bitmap_zeronum(hash_flowid);
+    if (bm_zero_num[0] == 1 && bm_zero_num[1] == 1) //both 2 bitmaps are full
+    {
+        array<uint32_t,2> hll_vals = layer2.get2hll_vals(hash_flowid);
+        if(hll_vals[0] > 2*hll_vals[1] || hll_vals[1] > 2*hll_vals[0])
+            return 19 + 2*min(hll_vals[0],hll_vals[1]);
+        size_t low_bound = (hll_vals[0] + hll_vals[1]) * (1 - 0.1856 * 2);
+        size_t up_bound = (hll_vals[0] + hll_vals[1]) * (1 + 0.1856 * 2);
+        double max_prob = 0;
+        uint32_t ret_spread = map_esti.find_max(hll_vals, low_bound, up_bound);
+        return 19 + ret_spread;
+    }
+    else
+    {
+        return query_spread(flowid);
+        double max_prob = 0;
+        uint32_t ret_spread = 1;
+        for(size_t spread = 1;spread < 19;spread++)
+        {
+            double prob_spread = 0;
+            for (size_t bm1_s = 0;bm1_s <= spread;bm1_s++)
+            {
+                double cond_p1 = map_esti.prob_cond_bm(bm_zero_num[0], bm1_s);
+                double cond_p2 = map_esti.prob_cond_bm(bm_zero_num[1], spread - bm1_s);
+                double bm1_s_prob = map_esti.prob_s1_val(bm1_s,spread);
+                prob_spread += cond_p1 * cond_p2 * bm1_s_prob;
+            }
+            if(prob_spread > max_prob)
+            {
+                max_prob = prob_spread;
+                ret_spread = spread;
+            }
+        }
+        return ret_spread;
+    }
 }
 
 // DCSketch::DCSketch(string dataset,string filename)

@@ -2,6 +2,7 @@
 #define _DCSKETCH_H_
 
 #include "hashfunc.h"
+#include "MAP.h"
 #include<iostream>
 #include<cmath>
 #include<string>
@@ -48,6 +49,7 @@ public:
     static constexpr double thresh_ratio = 1.256 / 2;
     
     uint8_t get_bitmap(uint32_t bitmap_pos);
+    array<uint32_t,2> get2bitmap_zeronum(array<uint64_t,2>& hash_flowid);
     bool check_bitmap_full(uint8_t input_bitmap);
     bool add_element(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
@@ -82,7 +84,7 @@ public:
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid);
     uint32_t get_spread(uint32_t pos);
-
+    array<uint32_t,2> get2hll_vals(array<uint64_t,2>& hash_flowid);
     class Table_Entry{
     public:
         string flowid;
@@ -132,7 +134,9 @@ public:
     uint32_t get_cardinality(array<uint8_t,register_num>& HLL_registers);
     uint32_t get_number_flows(uint32_t layer);
     uint32_t get_number_elements(uint32_t layer);
+    array<uint8_t,register_num> HLL_union(array<uint8_t,register_num>& HLL_registers1,array<uint8_t,register_num>& HLL_registers2);
 };
+
 
 Global_HLLs::Global_HLLs()
 {
@@ -153,13 +157,28 @@ public:
     array<uint32_t,2001> Error_RMV;
     bool layer1_err_remove;
     bool layer2_err_remove;
+    uint32_t layer1_flows;
+    uint32_t layer2_flows;
+    uint32_t layer1_elements;
+    uint32_t layer2_elements;
     uint32_t L1_mean_error;
     uint32_t L2_mean_error;
     DCSketch();
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
+    uint32_t query_spread_offline(string flowid);
     void update_mean_error();
+    //Offline
+    MAP map_esti;
+    void offline_init();
 };
+
+
+void DCSketch::offline_init()
+{
+    map_esti.MAP_Init(layer1_flows, layer2_flows, layer1_elements, layer2_elements, layer1.bitmap_num, layer2.HLL_num);
+}
+
 
 DCSketch::DCSketch()
 {
