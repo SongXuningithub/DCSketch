@@ -601,31 +601,12 @@ uint32_t DCSketch::query_spread_offline(string flowid)
         size_t low_bound = (hll_vals[0] + hll_vals[1]) * (1 - 0.1856 * 2);
         size_t up_bound = (hll_vals[0] + hll_vals[1]) * (1 + 0.1856 * 2);
         double max_prob = 0;
-        uint32_t ret_spread = map_esti.find_max(hll_vals, low_bound, up_bound);
+        uint32_t ret_spread = mle_esti.find_max(hll_vals, low_bound, up_bound);
         return 19 + ret_spread;
     }
     else
     {
         return query_spread(flowid);
-        double max_prob = 0;
-        uint32_t ret_spread = 1;
-        for(size_t spread = 1;spread < 19;spread++)
-        {
-            double prob_spread = 0;
-            for (size_t bm1_s = 0;bm1_s <= spread;bm1_s++)
-            {
-                double cond_p1 = map_esti.prob_cond_bm(bm_zero_num[0], bm1_s);
-                double cond_p2 = map_esti.prob_cond_bm(bm_zero_num[1], spread - bm1_s);
-                double bm1_s_prob = map_esti.prob_s1_val(bm1_s,spread);
-                prob_spread += cond_p1 * cond_p2 * bm1_s_prob;
-            }
-            if(prob_spread > max_prob)
-            {
-                max_prob = prob_spread;
-                ret_spread = spread;
-            }
-        }
-        return ret_spread;
     }
 }
 
@@ -656,3 +637,23 @@ uint32_t DCSketch::query_spread_offline(string flowid)
 //         ifile_hand >> offline_layer2[i];
 //     }
 // }
+
+// double max_prob = 0;
+// uint32_t ret_spread = 1;
+// for(size_t spread = 1;spread < 19;spread++)
+// {
+//     double prob_spread = 0;
+//     for (size_t bm1_s = 0;bm1_s <= spread;bm1_s++)
+//     {
+//         double cond_p1 = mle_esti.prob_cond_bm(bm_zero_num[0], bm1_s);
+//         double cond_p2 = mle_esti.prob_cond_bm(bm_zero_num[1], spread - bm1_s);
+//         double bm1_s_prob = mle_esti.prob_s1_val(bm1_s,spread);
+//         prob_spread += cond_p1 * cond_p2 * bm1_s_prob;
+//     }
+//     if(prob_spread > max_prob)
+//     {
+//         max_prob = prob_spread;
+//         ret_spread = spread;
+//     }
+// }
+// return ret_spread;

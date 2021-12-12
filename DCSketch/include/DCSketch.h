@@ -2,7 +2,7 @@
 #define _DCSKETCH_H_
 
 #include "hashfunc.h"
-#include "MAP.h"
+#include "MLE.h"
 #include<iostream>
 #include<cmath>
 #include<string>
@@ -169,14 +169,14 @@ public:
     uint32_t query_spread_offline(string flowid);
     void update_mean_error();
     //Offline
-    MAP map_esti;
+    MLE mle_esti;
     void offline_init();
 };
 
 
 void DCSketch::offline_init()
 {
-    map_esti.MAP_Init(layer1_flows, layer2_flows, layer1_elements, layer2_elements, layer1.bitmap_num, layer2.HLL_num);
+    mle_esti.MLE_Init(layer1_flows, layer2_flows, layer1_elements, layer2_elements, layer1.bitmap_num, layer2.HLL_num);
 }
 
 

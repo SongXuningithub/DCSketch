@@ -1,6 +1,6 @@
-#include "MAP.h"
+#include "MLE.h"
 
-void MAP::MAP_Init(double l1_f, double l2_f, double l1_e, double l2_e, double l1_bkts, double l2_bkts)
+void MLE::MLE_Init(double l1_f, double l2_f, double l1_e, double l2_e, double l1_bkts, double l2_bkts)
 {
     lamda1 = 2 * l1_f / l1_bkts;
     lamda2 = 2 * l2_f / l2_bkts;
@@ -18,7 +18,7 @@ void MAP::MAP_Init(double l1_f, double l2_f, double l1_e, double l2_e, double l1
     }
 }
 
-double MAP::prop_bimtap_val(double zero_num, double s) //the probability that a bitmap has zero_num zeros after recording a set with cardinality s. 
+double MLE::prop_bimtap_val(double zero_num, double s) //the probability that a bitmap has zero_num zeros after recording a set with cardinality s. 
 {
     static const double bitmap_size = 6;
     double prob_zero_bit = pow((1 - 1/bitmap_size), s); 
@@ -27,7 +27,7 @@ double MAP::prop_bimtap_val(double zero_num, double s) //the probability that a 
     return prob;
 }
 
-double MAP::prop_hll_val(double hll_val, double s) //the probability that a HyperLogLog has value hll_val after recording a set with cardinality s. 
+double MLE::prop_hll_val(double hll_val, double s) //the probability that a HyperLogLog has value hll_val after recording a set with cardinality s. 
 {
 #define PI 3.1415926
     static double sigma = 1.05/sqrt(32); 
@@ -35,7 +35,7 @@ double MAP::prop_hll_val(double hll_val, double s) //the probability that a Hype
     return prob;
 }
 
-double MAP::prob_cond_bm(double bm_zero_num, double s)
+double MLE::prob_cond_bm(double bm_zero_num, double s)
 {
     double prob_bm = 0;
     for(size_t conf_flows = 0;conf_flows <= layer1_poiss_pdf.size() ;conf_flows++)
@@ -49,7 +49,7 @@ double MAP::prob_cond_bm(double bm_zero_num, double s)
     return prob_bm;
 }
 
-double MAP::prob_cond_hll(double hll_val, double s)
+double MLE::prob_cond_hll(double hll_val, double s)
 {
     double prob_hll = 0;
     for(size_t conf_flows = 0;conf_flows < layer2_poiss_pdf.size();conf_flows++)
@@ -63,7 +63,7 @@ double MAP::prob_cond_hll(double hll_val, double s)
     return prob_hll;
 }
 
-double MAP::factorial(double n)
+double MLE::factorial(double n)
 {
     if (n <= 1)
         return 1;
@@ -75,7 +75,7 @@ double MAP::factorial(double n)
     return res;
 }
 
-double MAP::prob_s1_val(double i, double total_c)
+double MLE::prob_s1_val(double i, double total_c)
 {
     if(total_c <= 15)
     {
@@ -88,7 +88,7 @@ double MAP::prob_s1_val(double i, double total_c)
     return prob;
 }
 
-double MAP::spread_prob(array<uint32_t,2> hll_vals, double spread)
+double MLE::spread_prob(array<uint32_t,2> hll_vals, double spread)
 {
     double prob_spread = 0;
     for (size_t hll1_s = 0.25 * spread; hll1_s <= 0.75*spread;hll1_s++)
@@ -101,7 +101,7 @@ double MAP::spread_prob(array<uint32_t,2> hll_vals, double spread)
     return prob_spread;
 }
 
-double MAP::find_max(array<uint32_t,2> hll_vals, double low_bound, double up_bound)
+double MLE::find_max(array<uint32_t,2> hll_vals, double low_bound, double up_bound)
 {
     double left_spread = low_bound;
     double right_spread = up_bound;
@@ -133,7 +133,7 @@ double MAP::find_max(array<uint32_t,2> hll_vals, double low_bound, double up_bou
     return static_cast<uint32_t>(ret_spread);
 }
 
-// double MAP::prob_error_val_hll(double err_val, double lamda)
+// double MLE::prob_error_val_hll(double err_val, double lamda)
 // {
 //     double prob = 1; //= pow(lamda,err_val) / factorial(err_val) * exp(-lamda);
 //     for(size_t i = 1;i <= err_val;i++)
@@ -143,7 +143,7 @@ double MAP::find_max(array<uint32_t,2> hll_vals, double low_bound, double up_bou
 //     return prob;
 // }
 
-// double MAP::prob_error_val_bm(double err_val, double lamda)
+// double MLE::prob_error_val_bm(double err_val, double lamda)
 // {
 //     double prob = 1; //= pow(lamda,err_val) / factorial(err_val) * exp(-lamda);
 //     for(size_t i = 1;i <= err_val;i++)

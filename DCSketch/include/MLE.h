@@ -1,12 +1,12 @@
-#ifndef _MAP_H
-#define _MAP_H
+#ifndef _MLE_H
+#define _MLE_H
 #include <iostream>
 #include <math.h>
 #include <vector>
 #include <array>
 using namespace std;
 
-class MAP{
+class MLE{
 public:
     double lamda1;
     double lamda2;
@@ -15,7 +15,7 @@ public:
     vector<double> layer1_poiss_pdf;
     vector<double> layer2_poiss_pdf;
 
-void MAP_Init(double l1_f, double l2_f, double l1_e, double l2_e, double l1_bkts, double l2_bkts);
+void MLE_Init(double l1_f, double l2_f, double l1_e, double l2_e, double l1_bkts, double l2_bkts);
 double factorial(double n);
 double prop_bimtap_val(double zero_num, double s); //the probability that a bitmap has zero_num zeros after recording a set with cardinality s. 
 double prop_hll_val(double hll_val, double s); //the probability that a HyperLogLog has value hll_val after recording a set with cardinality s. 

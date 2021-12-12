@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 
 project(DCSketch)
 
-#MAP lib
+#MLE lib
 add_library(
-    MAP
+    MLE
     SHARED
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/MAP.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/MLE.cpp
 )
 
 target_include_directories(
-    MAP
+    MLE
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -32,7 +32,7 @@ target_link_libraries(
     DCSketch
     PUBLIC
     hashfunc
-    MAP
+    MLE
 )
 
 # test executable
