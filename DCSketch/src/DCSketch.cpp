@@ -16,7 +16,10 @@ namespace metadata{
 Bitmap_Arr::Bitmap_Arr()
 {
     cout<<"Layer1: Bitmap array initializing:"<<endl;
-
+    for(size_t i = 0;i < raw.size();i++)
+    {
+        raw[i] = 0;
+    }
     for(size_t i = 0;i < bitmap_size;i++)
     {
         patterns[i] = 1 << (bitmap_size - i - 1);
@@ -56,11 +59,26 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
     return res;
 }
 
+// bool Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
+// {
+//     if( input_bitmap == FULL_PAT )
+//         return true;
+//     uint32_t zero_num = 0;
+//     for(size_t i=0;i<bitmap_size;i++)
+//     {
+//         if( tmp_arr[i] & input_bitmap == 0)
+//             zero_num++;
+//             if(zero_num > 1)
+//                 return false;
+//     }
+//     return false;
+// }
+uint32_t tmp_arr[6] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
 bool Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
 {
     for(size_t i=0;i<bitmap_size;i++)
     {
-        if( (input_bitmap | (1 << i)) == FULL_PAT)
+        if( (input_bitmap | tmp_arr[i] ) == FULL_PAT)
             return true;
     }
     return false;

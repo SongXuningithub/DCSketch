@@ -34,14 +34,15 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
             used to record spreads of small flows. Flows which have "filled" all its hashed bitmaps will
             resort to layer2 to record them.  
 */
+static const uint32_t memory_size = 1000; //kB
 
 class Bitmap_Arr{
 public:
-    static const uint32_t memory = 400;      //kB
+    static const uint32_t memory = memory_size * 3 / 5;      //kB
     static const uint32_t bitmap_size = 6;      //bits
     static const uint32_t bitmap_num = memory * 1024 * 8 / bitmap_size;
     static const uint32_t hash_num = 2;
-    uint32_t raw[memory*1024*8/32];
+    array <uint32_t,memory*1024*8/32> raw{};
     array<uint8_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
 #define BITMAP_FULL_FLAG 435.0
@@ -65,7 +66,7 @@ Layer 2:    A sketch which consists of HyperLogLog estimators. In another word, 
 
 class HLL_Arr{
 public:
-    static const uint32_t memory = 300;      //kB
+    static const uint32_t memory = memory_size * 2 / 5;  //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
     static const uint32_t register_num = 32;
@@ -100,6 +101,10 @@ public:
     
     HLL_Arr()
     {
+        for(size_t i = 0;i <= HLL_raw.size();i++)
+        {
+            HLL_raw[i] = 0;
+        }
         hash_table.resize(tab_size);
         for(size_t i = 0;i < exp_table.size();i++)
         {
