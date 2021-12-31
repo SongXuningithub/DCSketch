@@ -16,7 +16,7 @@ int main()
 {
     string dataset = "MAWI";
     //string filename = "CAIDA_frag_0000";
-    for(size_t i = 1;i <= 1;i++)
+    for(size_t i = 1;i <= 2;i++)
     {
         //string filename = "5M_frag (" + to_string(i) + ")";
         string filename = "pkts_frag_0000" + to_string(i);
@@ -35,13 +35,9 @@ int main()
                 bskt.process_packet(srcip,dstip);
             else
                 bskt.process_packet(dstip,srcip);
-            // if(session.proc_num()%1000000 == 0)
-            // {
-            //     cout<<"process packet "<<session.proc_num()<<endl;
-            // }
-            if(session.proc_num()%8000000 == 0)
+            if(session.proc_num()%1000000 == 0)
             {
-                break;
+                cout<<"process packet "<<session.proc_num()<<endl;
             }
         }
         endTime = clock();
@@ -55,7 +51,7 @@ int main()
         //     //checker.record_full_result(flow_spread,dcsketch.layer1);
         // }
         
-        //write_res(dataset,filename,bskt);
+        write_res(dataset,filename,bskt);
     }
     return 0;
 }

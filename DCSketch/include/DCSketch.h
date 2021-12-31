@@ -20,9 +20,9 @@ using std::vector;
 using std::array;
 using std::unordered_map;
 
-// #define DEBUG_LAYER12 3
+//#define DEBUG_LAYER12 3
 //#define DEBUG_LAYER2 3
-// #define DEBUG_LAYER1 1
+#define DEBUG_LAYER1 1
 
 #define MAX_UINT8 255
 #define MAX_UINT16 65535
@@ -45,13 +45,14 @@ public:
     array <uint32_t,memory*1024*8/32> raw{};
     array<uint8_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
+    static const uint8_t FULL_PAT  = 255>>2;
 #define BITMAP_FULL_FLAG 435.0
     Bitmap_Arr();
     static constexpr double thresh_ratio = 1.256 / 2;
     
     uint8_t get_bitmap(uint32_t bitmap_pos);
     array<uint32_t,2> get2bitmap_zeronum(array<uint64_t,2>& hash_flowid);
-    bool check_bitmap_full(uint8_t input_bitmap);
+    int check_bitmap_full(uint8_t input_bitmap);
     bool add_element(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     double get_spread(string flowid, array<uint64_t,2>& hash_flowid);
@@ -204,7 +205,5 @@ DCSketch::DCSketch()
         Error_RMV[ratio] = error_val;
     }
 }
-
-
 
 #endif

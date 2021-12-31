@@ -57,8 +57,8 @@ class bSkt{
 public:
 //#define HLL_MODE 1
 #define Bitmap_MODE 1
-    bool DETECT_SUPERSPREADER = true;
-    static const uint32_t memory = 1000;  //kB
+    bool DETECT_SUPERSPREADER = false;
+    static const uint32_t memory = 2000;  //kB
 
 #ifdef HLL_MODE
     static const uint32_t table_size = memory * 1024 * 8 / 4 /HLL::HLL_size;

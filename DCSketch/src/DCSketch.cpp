@@ -26,6 +26,7 @@ Bitmap_Arr::Bitmap_Arr()
     }
     double ln_bmsize = log(bitmap_size);
     double ln_bmsize_minu1 = log(bitmap_size - 1);
+    spreads[0] = ( ln_bmsize - log(1) ) / (ln_bmsize - ln_bmsize_minu1);
     for(size_t i = 1;i <= bitmap_size;i++)
     {
         spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
@@ -40,8 +41,6 @@ Bitmap_Arr::Bitmap_Arr()
 uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
 {
     using namespace metadata;
-#define FULL_PAT static_cast<uint8_t>(255>>2)
-
     bits_bias = bitmap_pos * bitmap_size;
     uint32_pos =  bits_bias/ 32;
     inner_bias = bits_bias % 32;
@@ -59,30 +58,40 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
     return res;
 }
 
-// bool Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
+uint32_t zero_pos;
+uint32_t tmp_arr[6] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
+int Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
+{
+    if( input_bitmap == FULL_PAT )
+    {
+        //cout<<"FAST return."<<endl;
+        return 6;
+    }
+    bool has_zero = false;
+    for(size_t i=0;i<bitmap_size;i++)
+    {
+        if( (tmp_arr[i] & input_bitmap) == 0)
+        {
+            if(has_zero)
+                return -1;
+            else
+                has_zero = true;
+            zero_pos = i;
+        }   
+    }
+    return zero_pos;
+}
+
+// uint32_t tmp_arr[6] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
+// int Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
 // {
-//     if( input_bitmap == FULL_PAT )
-//         return true;
-//     uint32_t zero_num = 0;
 //     for(size_t i=0;i<bitmap_size;i++)
 //     {
-//         if( tmp_arr[i] & input_bitmap == 0)
-//             zero_num++;
-//             if(zero_num > 1)
-//                 return false;
+//         if( (input_bitmap | tmp_arr[i] ) == FULL_PAT)
+//             return true;
 //     }
 //     return false;
 // }
-uint32_t tmp_arr[6] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
-bool Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
-{
-    for(size_t i=0;i<bitmap_size;i++)
-    {
-        if( (input_bitmap | tmp_arr[i] ) == FULL_PAT)
-            return true;
-    }
-    return false;
-}
 
 bool Bitmap_Arr::add_element(uint32_t bit_pos)
 {
@@ -108,19 +117,20 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     uint32_t hashres32 = static_cast<uint32_t>(hash_element[0] >> 32);
     uint32_t update_pos = L1_pos[(hashres32>>16) % hash_num];
     uint8_t bitmap_state = get_bitmap(update_pos);
-#ifdef DEBUG_LAYER1
-    cout<<"before changed: "<<std::bitset<6>(bitmap_state)<<endl;
-#endif
+// #ifdef DEBUG_LAYER1
+//     cout<<"before changed: "<<std::bitset<6>(bitmap_state)<<endl;
+// #endif
     bool all_full = true;
-    if(!check_bitmap_full(bitmap_state))
+    int tmp_status = check_bitmap_full(bitmap_state);
+    if(tmp_status == -1)
     {
         uint32_t update_bit = static_cast<uint16_t>(hashres32) % bitmap_size;
         add_element(update_bit);
-#ifdef DEBUG_LAYER1
-        bitmap_state = get_bitmap(update_pos);
-        cout<<"change bit: "<<update_bit<<endl;
-        cout<<"after changed: "<<std::bitset<6>(bitmap_state)<<endl;
-#endif
+// #ifdef DEBUG_LAYER1
+//         bitmap_state = get_bitmap(update_pos);
+//         cout<<"change bit: "<<update_bit<<endl;
+//         cout<<"after changed: "<<std::bitset<6>(bitmap_state)<<endl;
+// #endif
         all_full = false;
     }
     else
@@ -128,19 +138,34 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
 #ifdef DEBUG_LAYER12
         cout<<"ONE bitmap_state: "<<std::bitset<6>(bitmap_state)<<endl;
 #endif
+        if(tmp_status < 6)
+        {
+            //cout<<"ONE bitmap_state before_change: "<<std::bitset<6>(bitmap_state)<<endl;
+            add_element(tmp_status);
+            // uint8_t bitmap_state = get_bitmap(update_pos);
+            // cout<<"ONE bitmap_state after_change: "<<std::bitset<6>(bitmap_state)<<endl;
+        }
         for(size_t i = 0;i < hash_num;i++)
         {
             if(L1_pos[i] == update_pos)
                 continue;
             bitmap_state = get_bitmap(L1_pos[i]);
-
 #ifdef DEBUG_LAYER12
             cout<<"ANOTHER bitmap_state: "<<std::bitset<6>(bitmap_state)<<endl;
 #endif
-            if(!check_bitmap_full(bitmap_state))
+            tmp_status = check_bitmap_full(bitmap_state);
+            if(tmp_status == -1)
             {
                 all_full = false;
                 break;
+            }
+            if(tmp_status < 6)
+            {
+                // cout<<"ONE bitmap_state before_change: "<<std::bitset<6>(bitmap_state)<<endl;
+                add_element(tmp_status);
+                // uint8_t bitmap_state = get_bitmap(update_pos);
+                // cout<<"ONE bitmap_state after_change: "<<std::bitset<6>(bitmap_state)<<endl;
+                //add_element(tmp_status);
             }
         }
     }

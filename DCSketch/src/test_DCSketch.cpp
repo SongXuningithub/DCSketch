@@ -17,11 +17,11 @@ void write_superspreaders(string dataset,string filename,set<string>& supersprea
 bool per_src_flow = true;
 int main()
 {
-// #define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_PERFLOW_SPREAD 1
 //#define OUTPUT_SUPER_SPREADERS 1
 //#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
-    for(size_t i = 1;i <= 1;i++)
+    for(size_t i = 1;i <= 2;i++)
     {
         DCSketch dcsketch;
         string dataset = "MAWI";
