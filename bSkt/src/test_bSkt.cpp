@@ -10,13 +10,18 @@
 #include <ctime>
 using std::unique_ptr;
 
+// #define OUTPUT_PER_FLOW_SPREAD 1
+#define OUTPUT_SUPER_SPREADERS 1
+
 void write_res(string dataset,string filename,bSkt& rersketch);
+void write_superspreaders(string dataset, string filename, vector<IdSpread>& superspreaders);
+
 bool per_src_flow = true;
 int main()
 {
     string dataset = "MAWI";
     //string filename = "CAIDA_frag_0000";
-    for(size_t i = 1;i <= 2;i++)
+    for(size_t i = 1;i <= 1;i++)
     {
         //string filename = "5M_frag (" + to_string(i) + ")";
         string filename = "pkts_frag_0000" + to_string(i);
@@ -50,8 +55,15 @@ int main()
         //     checker.record_result((uint32_t)flow_spread);
         //     //checker.record_full_result(flow_spread,dcsketch.layer1);
         // }
-        
+    #ifdef OUTPUT_PER_FLOW_SPREAD
         write_res(dataset,filename,bskt);
+    #endif
+
+    #ifdef OUTPUT_SUPER_SPREADERS
+        vector<IdSpread> superspreaders;
+        bskt.report_superspreaders(superspreaders);
+        write_superspreaders(dataset, filename, superspreaders);
+    #endif
     }
     return 0;
 }
@@ -88,3 +100,25 @@ void write_res(string dataset,string filename,bSkt& bskt)
     ofile_hand.close();
 }
 
+void write_superspreaders(string dataset, string filename, vector<IdSpread>& superspreaders)
+{
+    string ofile_path = "../../bSkt/SuperSpreader/" + dataset + "/";
+    ifstream ifile_hand;
+    ofstream ofile_hand;
+    ofile_hand = ofstream(ofile_path + filename + ".txt");
+    if(!ofile_hand)
+    {
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    bool first_line = true;
+    for(auto item : superspreaders)
+    {
+        if(first_line)
+            first_line = false;
+        else
+            ofile_hand << endl;    
+        ofile_hand << item.flowID << " " << item.spread;
+    }
+    ofile_hand.close();
+}

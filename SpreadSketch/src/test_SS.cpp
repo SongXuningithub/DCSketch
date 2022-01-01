@@ -2,17 +2,16 @@
 #include "mylibpcap.h"
 #include <fstream>
 
-void write_res(string dataset,string filename,set<string>& superspreaders);
+void write_res(string dataset,string filename,vector<IdSpread>& superspreaders);
 
 int main()
 {
     SpreadSketch ss(1024);
-    string dataset = "KAGGLE"; 
-    //string filename = "imc_merge_0000";
+    string dataset = "MAWI"; 
     //string filename = "CAIDA_frag_0000";
-    //string filename = "pkts_frag_00000";
-    string filename = "Dataset-Unicauca";
-    PCAP_SESSION session(dataset,filename,CSV_FILE);
+    string filename = "pkts_frag_00001";
+    //string filename = "Dataset-Unicauca";
+    PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
@@ -27,9 +26,8 @@ int main()
         }
     }
 
-    set<string> superspreaders;
-    uint32_t threshold = 1000;
-    ss.output_superspreaders(threshold,superspreaders);
+    vector<IdSpread> superspreaders;
+    ss.output_superspreaders(superspreaders);
     write_res(dataset, filename, superspreaders);
     return 0;
 }
@@ -50,21 +48,25 @@ string trans2ipformat(uint32_t val)
     return ret;
 }
 
-void write_res(string dataset,string filename,set<string>& superspreaders)
+void write_res(string dataset, string filename, vector<IdSpread>& superspreaders)
 {
-    //string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../SpreadSketch/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    ofile_hand = ofstream(ofile_path + filename + ".txt");
     if(!ofile_hand)
     {
         cout<<"fail to open files."<<endl;
         return;
     }
+    bool first_line = true;
     for(auto item : superspreaders)
     {
-        ofile_hand << item <<endl;
+        if(first_line)
+            first_line = false;
+        else
+            ofile_hand << endl;    
+        ofile_hand << item.flowID << " " << item.spread;
     }
     ofile_hand.close();
 }

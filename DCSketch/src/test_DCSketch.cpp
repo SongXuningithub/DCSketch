@@ -13,15 +13,15 @@ using std::unique_ptr;
 void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
-void write_superspreaders(string dataset,string filename,set<string>& superspreaders);
+void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders);
 bool per_src_flow = true;
 int main()
 {
-#define OUTPUT_PERFLOW_SPREAD 1
-//#define OUTPUT_SUPER_SPREADERS 1
+//#define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_SUPER_SPREADERS 1
 //#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
-    for(size_t i = 1;i <= 2;i++)
+    for(size_t i = 1;i <= 1;i++)
     {
         DCSketch dcsketch;
         string dataset = "MAWI";
@@ -53,22 +53,14 @@ int main()
     #ifdef OUTPUT_PERFLOW_SPREAD
         write_perflow_spread(dataset,filename,dcsketch);
     #endif
+    
+    #ifdef OUTPUT_SUPER_SPREADERS
+        //uint32_t threshold = 50000;//1000;
+        vector<IdSpread> superspreaders;
+        dcsketch.report_superspreaders(superspreaders);
+        write_superspreaders(dataset,filename,superspreaders);
+    #endif
     }
-    
-#ifdef OUTPUT_SUPER_SPREADERS
-    uint32_t threshold = 600;//1000;
-    set<string> superspreaders;
-    dcsketch.layer2.report_superspreaders(threshold, superspreaders);
-    write_superspreaders(dataset,filename,superspreaders);
-#endif
-    
-#ifdef OUTPUT_SKETCH
-    write_sketch(dataset,filename,dcsketch);
-#endif
-
-#ifdef OUTPUT_REAL_DISTRIBUTION
-write_real_distribution(dataset,filename,dcsketch);
-#endif
     return 0;
 }
 
@@ -105,22 +97,24 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
     ofile_hand.close();
 }
 
-void write_superspreaders(string dataset,string filename,set<string>& superspreaders)
+void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders)
 {
     string ofile_path = "../../DCSketch/output/SuperSpreaders/" + dataset + "/";
     ofstream ofile_hand;
-    if(per_src_flow)
-        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
-    else
-        ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + "rev.txt");
+    ofile_hand = ofstream(ofile_path + filename + ".txt");
     if(!ofile_hand)
     {
         cout<<"fail to open files."<<endl;
         return;
     }
+    bool first_line = true;
     for(auto item : superspreaders)
     {
-        ofile_hand << item <<endl;
+        if(first_line)
+            first_line = false;
+        else
+            ofile_hand << endl;
+        ofile_hand << item.flowID << " " << item.spread;
     }
     ofile_hand.close();
 }

@@ -1,7 +1,8 @@
 #include "Vector_BF.h"
 #include "mylibpcap.h"
+#include <ctime>
 
-void write_res(string dataset,string filename,vector<string>& superspreaders);
+void write_res(string dataset, string filename, vector<IdSpread>& superspreaders);
 
 int main()
 {
@@ -9,7 +10,7 @@ int main()
     string dataset = "MAWI"; 
     //string filename = "imc_merge_0000";
     //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00000";
+    string filename = "pkts_frag_00001";
     //string filename = "Dataset-Unicauca";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
@@ -30,30 +31,38 @@ int main()
             cout<<"process packet "<<session.proc_num()<<endl;
         }
     }
-    uint32_t threshold = 400;
+    uint32_t threshold = 600;
     vbf.calc_Z(threshold);
-    vector<string> superspreaders;
+    vector<IdSpread> superspreaders;
+    clock_t startTime,endTime;
+    startTime = clock();
     vbf.Detect_Superpoint(superspreaders);
-    
+    endTime = clock();
+    cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     write_res(dataset, filename, superspreaders);
     return 0;
 }
 
-void write_res(string dataset,string filename,vector<string>& superspreaders)
+void write_res(string dataset,string filename,vector<IdSpread>& superspreaders)
 {
     //string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../Vector_BF/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + filename.substr(filename.size() - 4) + ".txt");
+    ofile_hand = ofstream(ofile_path + filename + ".txt");
     if(!ofile_hand)
     {
         cout<<"fail to open files."<<endl;
         return;
     }
+    bool first_line = true;
     for(auto item : superspreaders)
     {
-        ofile_hand << item <<endl;
+        if(first_line)
+            first_line = false;
+        else
+            ofile_hand << endl;
+        ofile_hand << item.flowID << " " << item.spread;
     }
     ofile_hand.close();
 }

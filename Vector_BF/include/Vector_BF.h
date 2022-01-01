@@ -5,6 +5,7 @@
 #include <vector>
 #include <math.h>
 #include <array>
+#include <algorithm>
 #include "hashfunc.h"
 using namespace std;
 
@@ -20,6 +21,18 @@ public:
     void process_packet(string srcip,string dstip);
 };
 
+struct IdSpread
+{
+public:
+    string flowID;
+    uint32_t spread;
+    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
+};
+
+bool IdSpreadComp(IdSpread& a, IdSpread& b)
+{
+    return a.spread > b.spread;
+}
 
 class Vector_Bloom_Filter{
 public:
@@ -38,7 +51,7 @@ public:
     void calc_Z(uint32_t threshold);
     void Merge_String(BF_Table& input1,BF_Table& input2,BF_Table& output);
     void Generate_IP(BF_Table& input1,BF_Table& input2,BF_Table& output);
-    void Detect_Superpoint(vector<string>& superspreaders);
+    void Detect_Superpoint(vector<IdSpread>& superspreaders);
 };
 
 #endif

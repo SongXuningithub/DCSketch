@@ -202,7 +202,7 @@ string uint32toIPstr(uint32_t val)
     return ret;
 }
 
-void Vector_Bloom_Filter::Detect_Superpoint(vector<string>& superspreaders)
+void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>& superspreaders)
 {
     BF_Table H12;
     Merge_String(tables[0],tables[1],H12);
@@ -226,7 +226,11 @@ void Vector_Bloom_Filter::Detect_Superpoint(vector<string>& superspreaders)
         uint32_t zero_num = get_zero_num(V_v);
         if(zero_num <= Z)
         {
-            superspreaders.push_back(ipstr);
+            if(zero_num == 0)
+                zero_num = 1;
+            uint32_t spread = m * log( m / static_cast<double>(zero_num) );
+            superspreaders.push_back(IdSpread(ipstr,spread));
         }
     }
+    sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
 }

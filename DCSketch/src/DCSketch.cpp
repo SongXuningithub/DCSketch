@@ -457,13 +457,13 @@ void HLL_Arr::insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsr
     }
 }
 
-void HLL_Arr::report_superspreaders(uint32_t threshold, set<string>& superspreaders)
+void DCSketch::report_superspreaders(vector<IdSpread>& superspreaders)
 {
     superspreaders.clear();
     set<string> checked_flows;
-    for(size_t i = 0;i < tab_size;i++)
+    for(size_t i = 0;i < layer2.tab_size;i++)
     {
-        string tmp_flowid = hash_table[i].flowid;
+        string tmp_flowid = layer2.hash_table[i].flowid;
         if(checked_flows.find(tmp_flowid) != checked_flows.end())
         {
             continue;
@@ -471,14 +471,12 @@ void HLL_Arr::report_superspreaders(uint32_t threshold, set<string>& superspread
         else
         {
             checked_flows.insert(tmp_flowid);
-            array<uint64_t,2> hash_flowid = str_hash128(tmp_flowid,HASH_SEED_1);
-            uint32_t esti_card = get_spread(tmp_flowid,hash_flowid); 
-            if(19 + esti_card >= threshold)
-            {
-                superspreaders.insert(tmp_flowid);
-            }
+            //array<uint64_t,2> hash_flowid = str_hash128(tmp_flowid,HASH_SEED_1);
+            uint32_t esti_card = query_spread(tmp_flowid); 
+            superspreaders.push_back( IdSpread(tmp_flowid,esti_card) );
         }
     }
+    sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
 }
 
 void Global_HLLs::update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)

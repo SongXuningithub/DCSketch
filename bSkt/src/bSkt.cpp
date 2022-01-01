@@ -92,19 +92,35 @@ void bSkt::process_packet(string flowid,string element)
         return;
     uint32_t flowsrpead = get_flow_spread(flowid);
     FLOW tmpflow;
-    tmpflow.flowid = flowid;  tmpflow.flow_spread = flowsrpead;
+    tmpflow.flowid = flowid;  
+    tmpflow.flow_spread = flowsrpead;
+    if(inserted.find(flowid) != inserted.end())
+    {
+        for(size_t i = 0;i < heap.size();i++)
+        {
+            if(heap[i].flowid == flowid)
+            {
+                heap[i].flow_spread = flowsrpead;
+                break;
+            }
+        }
+        return;
+    }    
     if(heap.size() < heap_size)
     {
         heap.push_back(tmpflow);
+        inserted.insert(flowid);
         std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
     }
     else
     {
         if(flowsrpead >= heap[0].flow_spread)
         {
+            inserted.erase(heap[0].flowid);
             pop_heap(heap.begin(), heap.end(), MinHeapCmp());
             heap.pop_back();
             heap.push_back(tmpflow);
+            inserted.insert(flowid);
             std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
         }
     }

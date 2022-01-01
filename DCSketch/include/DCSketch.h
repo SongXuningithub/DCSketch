@@ -94,11 +94,10 @@ public:
         static const uint32_t selected_num = 4;
         //array<uint8_t,2> selected_counters;
     };
-    static const uint32_t table_mem = 50; //KB
+    static const uint32_t table_mem = 20; //KB
     static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);
     vector<Table_Entry> hash_table; 
     void insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64);
-    void report_superspreaders(uint32_t threshold, set<string>& superspreaders);
     
     HLL_Arr()
     {
@@ -155,6 +154,19 @@ Global_HLLs::Global_HLLs()
     }
 }
 
+struct IdSpread
+{
+public:
+    string flowID;
+    uint32_t spread;
+    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
+};
+
+bool IdSpreadComp(IdSpread& a, IdSpread& b)
+{
+    return a.spread > b.spread;
+}
+
 class DCSketch{
 public:
     Bitmap_Arr layer1;
@@ -173,6 +185,7 @@ public:
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     uint32_t query_spread_offline(string flowid);
+    void report_superspreaders(vector<IdSpread>& superspreaders);
     void update_mean_error();
     //Offline
     MLE mle_esti;

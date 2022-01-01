@@ -7,6 +7,7 @@
 #include<math.h>
 #include<vector>
 #include<algorithm>
+#include<set>
 #include "hashfunc.h"
 using namespace std;
 
@@ -53,12 +54,25 @@ struct MinHeapCmp
     }
 };
 
+struct IdSpread
+{
+public:
+    string flowID;
+    uint32_t spread;
+    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
+};
+
+bool IdSpreadComp(IdSpread& a, IdSpread& b)
+{
+    return a.spread > b.spread;
+}
+
 class bSkt{
 public:
-//#define HLL_MODE 1
-#define Bitmap_MODE 1
-    bool DETECT_SUPERSPREADER = false;
-    static const uint32_t memory = 2000;  //kB
+#define HLL_MODE 1
+// #define Bitmap_MODE 1
+    bool DETECT_SUPERSPREADER = true;
+    static const uint32_t memory = 1000;  //kB
 
 #ifdef HLL_MODE
     static const uint32_t table_size = memory * 1024 * 8 / 4 /HLL::HLL_size;
@@ -69,11 +83,21 @@ public:
     array<array<Bitmap,table_size>,4> tables;
 #endif
     void process_packet(string flowid,string element);
+    void report_superspreaders(vector<IdSpread>& superspreaders);
     uint32_t get_flow_spread(string flowid);
-    uint32_t heap_size = 300;
+    uint32_t heap_size = 400;
+    set<string> inserted;
     vector<FLOW> heap;
 };
 
-
+void bSkt::report_superspreaders(vector<IdSpread>& superspreaders)
+{
+    superspreaders.clear();
+    for(size_t i = 0;i < heap.size();i++)
+    {
+        superspreaders.push_back(IdSpread(heap[i].flowid, heap[i].flow_spread));
+    }
+    sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
+}
 
 #endif

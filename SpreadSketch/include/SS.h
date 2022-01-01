@@ -5,6 +5,7 @@
 #include <math.h>
 #include <vector>
 #include <set>
+#include <algorithm>
 #include "hashfunc.h"
 
 using namespace std;
@@ -36,6 +37,19 @@ public:
     static const uint32_t bkt_size = 32 + 32 + MultiResBitmap::mrbitmap_size;
 };
 
+struct IdSpread
+{
+public:
+    string flowID;
+    uint32_t spread;
+    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
+};
+
+bool IdSpreadComp(IdSpread& a, IdSpread& b)
+{
+    return a.spread > b.spread;
+}
+
 class SpreadSketch{
 public:
     static const uint32_t r = 4;
@@ -44,7 +58,7 @@ public:
     SpreadSketch(uint32_t mem);
     void update(string flowid, string elementid);
     uint32_t query(string flowid);
-    void output_superspreaders(uint32_t threshold,set<string>& superspreaders);
+    void output_superspreaders(vector<IdSpread>& superspreaders);
 };
 
 #endif

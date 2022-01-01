@@ -130,7 +130,7 @@ uint32_t SpreadSketch::query(string flowid)
     return ret_val;
 }
 
-void SpreadSketch::output_superspreaders(uint32_t threshold,set<string>& superspreaders)
+void SpreadSketch::output_superspreaders(vector<IdSpread>& superspreaders)
 {
     superspreaders.clear();
     set<string> checked_flows;
@@ -147,11 +147,9 @@ void SpreadSketch::output_superspreaders(uint32_t threshold,set<string>& supersp
             {
                 checked_flows.insert(tmp_K);
                 uint32_t esti_card = query(tmp_K); 
-                if(esti_card >= threshold)
-                {
-                    superspreaders.insert(tmp_K);
-                }
+                superspreaders.push_back(IdSpread(tmp_K,esti_card));
             }
         }
     }
+    sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
 }
