@@ -3,13 +3,13 @@
 #include <fstream>
 
 void write_res(string dataset,string filename,vector<IdSpread>& superspreaders);
-
+bool per_src_flow = false;
 int main()
 {
     SpreadSketch ss(1024);
-    string dataset = "MAWI"; 
-    //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00001";
+    string dataset = "CAIDA"; 
+    string filename = "5M_frag (1)";
+    //string filename = "pkts_frag_00001";
     //string filename = "Dataset-Unicauca";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
@@ -19,7 +19,10 @@ int main()
     {
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
-        ss.update(srcip,dstip);
+        if (per_src_flow)
+            ss.update(srcip,dstip);
+        else
+            ss.update(dstip,srcip);
         if(session.proc_num()%1000000 == 0)
         {
             cout<<"process packet "<<session.proc_num()<<endl;

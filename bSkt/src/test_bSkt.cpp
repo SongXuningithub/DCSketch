@@ -16,15 +16,14 @@ using std::unique_ptr;
 void write_res(string dataset,string filename,bSkt& rersketch);
 void write_superspreaders(string dataset, string filename, vector<IdSpread>& superspreaders);
 
-bool per_src_flow = true;
+bool per_src_flow = false;
 int main()
 {
-    string dataset = "MAWI";
-    //string filename = "CAIDA_frag_0000";
+    string dataset = "CAIDA";
     for(size_t i = 1;i <= 1;i++)
     {
-        //string filename = "5M_frag (" + to_string(i) + ")";
-        string filename = "pkts_frag_0000" + to_string(i);
+        string filename = "5M_frag (" + to_string(i) + ")";
+        //string filename = "pkts_frag_0000" + to_string(i);
         PCAP_SESSION session(dataset,filename,PCAP_FILE);
         IP_PACKET cur_packet;
         string srcip,dstip;

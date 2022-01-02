@@ -96,11 +96,12 @@ void bSkt::process_packet(string flowid,string element)
     tmpflow.flow_spread = flowsrpead;
     if(inserted.find(flowid) != inserted.end())
     {
-        for(size_t i = 0;i < heap.size();i++)
+        for(auto iter = heap.begin();iter != heap.end();iter++)
         {
-            if(heap[i].flowid == flowid)
+            if(iter->flowid == flowid)
             {
-                heap[i].flow_spread = flowsrpead;
+                iter->flow_spread = flowsrpead;
+                make_heap(iter, heap.end(), MinHeapCmp());
                 break;
             }
         }
@@ -110,18 +111,26 @@ void bSkt::process_packet(string flowid,string element)
     {
         heap.push_back(tmpflow);
         inserted.insert(flowid);
-        std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+        // std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+        for(size_t i = 1;i < heap.size();i++)
+        {
+            if(heap[0].flow_spread > heap[i].flow_spread)
+            {
+                cout<<"heap error"<<endl;
+            }
+        }
     }
     else
     {
+        std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
         if(flowsrpead >= heap[0].flow_spread)
         {
             inserted.erase(heap[0].flowid);
             pop_heap(heap.begin(), heap.end(), MinHeapCmp());
             heap.pop_back();
             heap.push_back(tmpflow);
-            inserted.insert(flowid);
             std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+            inserted.insert(flowid);
         }
     }
 }

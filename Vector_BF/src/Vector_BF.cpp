@@ -29,9 +29,10 @@ void BF_Table::append(uint32_t order_num,vector<uint8_t> rowdata)
 
 /****************************************************************/
 
-Vector_Bloom_Filter::Vector_Bloom_Filter(uint32_t m_)
+Vector_Bloom_Filter::Vector_Bloom_Filter(uint32_t mem)
 {
-    m = m_;
+    m = mem * 1024 * 8 / 5 / 4096;
+    cout<<"m="<<m<<endl; 
     for(size_t k = 0;k < 5;k++)
     {
         tables[k].resize(4096,m);

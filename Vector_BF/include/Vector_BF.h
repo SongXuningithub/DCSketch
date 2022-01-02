@@ -39,7 +39,7 @@ public:
     uint32_t m;
     uint32_t Z;
     array<BF_Table,5> tables;
-    Vector_Bloom_Filter(uint32_t m_);
+    Vector_Bloom_Filter(uint32_t mem); //kB
 #define HASH_SEED 92317
     uint32_t VBF_hash_1to5(uint32_t hash_num,array<uint8_t,4> srcip_tuple,string srcip_str);
     uint32_t VBF_hash_f(string srcip,string dstip);

@@ -17,7 +17,7 @@ using namespace std;
 
 class HLL{
 public:
-    static const uint32_t register_num = 32;
+    static const uint32_t register_num = 128;
     static const uint32_t register_size = 5;
     static const uint32_t HLL_size = register_num * register_size;
     static constexpr double alpha_m = 0.7213/(1+1.079/128); 

@@ -3,14 +3,14 @@
 #include <ctime>
 
 void write_res(string dataset, string filename, vector<IdSpread>& superspreaders);
-
+bool per_src_flow = false;
 int main()
 {
-    Vector_Bloom_Filter vbf(512);
-    string dataset = "MAWI"; 
+    Vector_Bloom_Filter vbf(1024);
+    string dataset = "CAIDA"; 
     //string filename = "imc_merge_0000";
-    //string filename = "CAIDA_frag_0000";
-    string filename = "pkts_frag_00001";
+    string filename = "5M_frag (1)";
+    // string filename = "pkts_frag_00001";
     //string filename = "Dataset-Unicauca";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
@@ -20,12 +20,24 @@ int main()
     {
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
-        array<uint8_t,4> srcip_tuple;
-        for(size_t i = 0;i < 4;i++)
+        if(per_src_flow)
         {
-            srcip_tuple[i] = cur_packet.srcdot[i];
+            array<uint8_t,4> srcip_tuple;
+            for(size_t i = 0;i < 4;i++)
+            {
+                srcip_tuple[i] = cur_packet.srcdot[i];
+            }
+            vbf.process_packet(srcip,srcip_tuple,dstip);
         }
-        vbf.process_packet(srcip,srcip_tuple,dstip);
+        else
+        {
+            array<uint8_t,4> dstip_tuple;
+            for(size_t i = 0;i < 4;i++)
+            {
+                dstip_tuple[i] = cur_packet.dstdot[i];
+            }
+            vbf.process_packet(dstip,dstip_tuple,srcip);
+        }
         if(session.proc_num()%1000000 == 0)
         {
             cout<<"process packet "<<session.proc_num()<<endl;

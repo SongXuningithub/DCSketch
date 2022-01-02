@@ -14,7 +14,7 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
 void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders);
-bool per_src_flow = true;
+bool per_src_flow = false;
 int main()
 {
 //#define OUTPUT_PERFLOW_SPREAD 1
@@ -24,9 +24,9 @@ int main()
     for(size_t i = 1;i <= 1;i++)
     {
         DCSketch dcsketch;
-        string dataset = "MAWI";
-        string filename = "pkts_frag_0000" + to_string(i);
-        //string filename = "5M_frag (" + to_string(i) + ")";
+        string dataset = "CAIDA";
+        // string filename = "pkts_frag_0000" + to_string(i);
+        string filename = "5M_frag (" + to_string(i) + ")";
         //string filename = "Dataset-Unicauca";
         PCAP_SESSION session(dataset,filename,PCAP_FILE);
         IP_PACKET cur_packet;
