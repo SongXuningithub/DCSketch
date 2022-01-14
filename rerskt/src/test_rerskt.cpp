@@ -11,14 +11,21 @@
 using std::unique_ptr;
 
 void write_res(string dataset,string filename,RerSkt& rersketch);
-bool per_src_flow = false;
+bool per_src_flow = true;
 int main()
 {
     string dataset = "MAWI";
+    if(dataset == "CAIDA")
+    {
+        per_src_flow = false;
+        cout<<"per_src_flow = false"<<endl;
+    }
+
     for(size_t i = 1;i <= 1;i++)
     {
-        //string filename = "5M_frag (" + to_string(i) + ")";
+        // string filename = "5M_frag (" + to_string(i) + ")";
         string filename = "pkts_frag_0000" + to_string(i);
+        // string filename = "Unicauca";
         PCAP_SESSION session(dataset,filename,PCAP_FILE);
         IP_PACKET cur_packet;
         string srcip,dstip;
@@ -38,8 +45,6 @@ int main()
             {
                 cout<<"process packet "<<session.proc_num()<<endl;
             }
-            // if(session.proc_num()%500000 == 0)
-            //     break;
         }
         endTime = clock();
         cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
@@ -52,7 +57,7 @@ int main()
         //     //checker.record_full_result(flow_spread,dcsketch.layer1);
         // }
         
-        //write_res(dataset,filename,rerskt);
+        write_res(dataset,filename,rerskt);
     }
     
     return 0;
@@ -71,6 +76,8 @@ void write_res(string dataset,string filename,RerSkt& rersketch)
         cout<<"fail to open files."<<endl;
         return;
     }
+    clock_t startTime,endTime;
+    startTime = clock();
     bool first_line = true;
     while(!ifile_hand.eof())
     {
@@ -86,6 +93,8 @@ void write_res(string dataset,string filename,RerSkt& rersketch)
         estimated_spread = estimated_spread > 0 ? estimated_spread : 0;
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
     }
+    endTime = clock();
+    cout << "The query time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     ifile_hand.close();
     ofile_hand.close();
 }

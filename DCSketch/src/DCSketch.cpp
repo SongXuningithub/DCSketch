@@ -296,6 +296,8 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     if(bucket_val < rou_x)
     {
         set_counter_val(update_pos,bucket_pos,rou_x);
+        // if(heavypart_active == false)
+        //     return;
         if (bucket_pos < Table_Entry::selected_num) 
         {
             //operation on hash table

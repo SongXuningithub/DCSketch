@@ -80,6 +80,7 @@ public:
     array<uint8_t,memory * 1024 * 8 / 8> HLL_raw{};
     static constexpr double thresh_ratio = 2.103 / 2;
     array<double,1<<register_size> exp_table;
+    // static const bool heavypart_active = false;
 
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);

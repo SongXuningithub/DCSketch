@@ -105,9 +105,11 @@ void SpreadSketch::update(string flowid, string elementid)
 {
     uint32_t hashres32 = str_hash32(flowid + elementid, HASH_SEED_1);
     uint32_t l = get_leading_zeros(hashres32);
+    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_2);
+    array<uint32_t,4> hashres32_arr{hashres128[0]>>32, static_cast<uint32_t>(hashres128[0]), hashres128[1]>>32, static_cast<uint32_t>(hashres128[1])}; 
     for(size_t i = 0;i < r;i++)
     {
-        uint32_t idx = str_hash32(flowid + to_string(i), HASH_SEED_2) % w;
+        uint32_t idx = hashres32_arr[i] % w; //str_hash32(flowid + to_string(i), HASH_SEED_2) % w;
         bkt_table[i][idx].mrbitmap.update(hashres32);
         if(bkt_table[i][idx].L <= l)
         {
@@ -120,9 +122,11 @@ void SpreadSketch::update(string flowid, string elementid)
 uint32_t SpreadSketch::query(string flowid)
 {
     uint32_t ret_val = static_cast<uint32_t>(1)<<31;
+    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_2);
+    array<uint32_t,4> hashres32_arr{hashres128[0]>>32, static_cast<uint32_t>(hashres128[0]), hashres128[1]>>32, static_cast<uint32_t>(hashres128[1])}; 
     for(size_t i = 0;i < r;i++)
     {
-        uint32_t idx = str_hash32(flowid + to_string(i), HASH_SEED_2) % w;
+        uint32_t idx = hashres32_arr[i] % w;  //str_hash32(flowid + to_string(i), HASH_SEED_2) % w;
         uint32_t tmp_card = bkt_table[i][idx].mrbitmap.get_cardinality();
         if(tmp_card < ret_val)
             ret_val = tmp_card;

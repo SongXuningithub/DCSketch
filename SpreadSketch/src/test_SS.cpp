@@ -3,18 +3,25 @@
 #include <fstream>
 
 void write_res(string dataset,string filename,vector<IdSpread>& superspreaders);
-bool per_src_flow = false;
+bool per_src_flow = true;
 int main()
 {
-    SpreadSketch ss(1024);
-    string dataset = "CAIDA"; 
-    string filename = "5M_frag (1)";
-    //string filename = "pkts_frag_00001";
-    //string filename = "Dataset-Unicauca";
+    SpreadSketch ss(2048);
+    string dataset = "MAWI"; 
+    if(dataset == "CAIDA")
+    {
+        per_src_flow = false;
+        cout<<"per_src_flow = false"<<endl;
+    }
+    // string filename = "5M_frag (1)";
+    string filename = "pkts_frag_00001";
+    // string filename = "Unicauca";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
+    clock_t startTime,endTime;
+    startTime = clock();
     while(int status = session.get_packet(cur_packet))
     {
         srcip = cur_packet.get_srcip();
@@ -28,9 +35,14 @@ int main()
             cout<<"process packet "<<session.proc_num()<<endl;
         }
     }
-
+    endTime = clock();
+    cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    
     vector<IdSpread> superspreaders;
+    startTime = clock();
     ss.output_superspreaders(superspreaders);
+    endTime = clock();
+    cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     write_res(dataset, filename, superspreaders);
     return 0;
 }

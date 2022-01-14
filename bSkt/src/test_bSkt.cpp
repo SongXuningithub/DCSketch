@@ -16,15 +16,21 @@ using std::unique_ptr;
 void write_res(string dataset,string filename,bSkt& rersketch);
 void write_superspreaders(string dataset, string filename, vector<IdSpread>& superspreaders);
 
-bool per_src_flow = false;
+bool per_src_flow = true;
 int main()
 {
-    string dataset = "CAIDA";
+    string dataset = "KAGGLE";
+    if(dataset == "CAIDA")
+    {
+        per_src_flow = false;
+        cout<<"per_src_flow = false"<<endl;
+    }
     for(size_t i = 1;i <= 1;i++)
     {
-        string filename = "5M_frag (" + to_string(i) + ")";
-        //string filename = "pkts_frag_0000" + to_string(i);
-        PCAP_SESSION session(dataset,filename,PCAP_FILE);
+        // string filename = "5M_frag (" + to_string(i) + ")";
+        // string filename = "pkts_frag_0000" + to_string(i);
+        string filename = "Unicauca";
+        PCAP_SESSION session(dataset,filename,CSV_FILE);
         IP_PACKET cur_packet;
         string srcip,dstip;
         bSkt bskt;
@@ -60,7 +66,10 @@ int main()
 
     #ifdef OUTPUT_SUPER_SPREADERS
         vector<IdSpread> superspreaders;
+        startTime = clock();
         bskt.report_superspreaders(superspreaders);
+        endTime = clock();
+        cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
         write_superspreaders(dataset, filename, superspreaders);
     #endif
     }
@@ -80,6 +89,7 @@ void write_res(string dataset,string filename,bSkt& bskt)
         cout<<"fail to open files."<<endl;
         return;
     }
+
     bool first_line = true;
     while(!ifile_hand.eof())
     {

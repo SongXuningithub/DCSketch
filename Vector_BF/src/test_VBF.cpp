@@ -3,19 +3,24 @@
 #include <ctime>
 
 void write_res(string dataset, string filename, vector<IdSpread>& superspreaders);
-bool per_src_flow = false;
+bool per_src_flow = true;
 int main()
 {
-    Vector_Bloom_Filter vbf(1024);
-    string dataset = "CAIDA"; 
-    //string filename = "imc_merge_0000";
-    string filename = "5M_frag (1)";
-    // string filename = "pkts_frag_00001";
-    //string filename = "Dataset-Unicauca";
+    Vector_Bloom_Filter vbf(2048);
+    string dataset = "MAWI"; 
+    if(dataset == "CAIDA")
+    {
+        per_src_flow = false;
+        cout<<"per_src_flow = false"<<endl;
+    }
+    // string filename = "5M_frag (1)";
+    string filename = "pkts_frag_00001";
+    // string filename = "Unicauca";
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
-    
+    clock_t startTime,endTime;
+    startTime = clock();
     while(int status = session.get_packet(cur_packet))
     {
         srcip = cur_packet.get_srcip();
@@ -43,10 +48,13 @@ int main()
             cout<<"process packet "<<session.proc_num()<<endl;
         }
     }
+    endTime = clock();
+    cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+
     uint32_t threshold = 600;
     vbf.calc_Z(threshold);
     vector<IdSpread> superspreaders;
-    clock_t startTime,endTime;
+    
     startTime = clock();
     vbf.Detect_Superpoint(superspreaders);
     endTime = clock();
