@@ -2,18 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 
 project(DCSketch)
 
-#MLE lib
-add_library(
-    MLE
-    SHARED
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/MLE.cpp
-)
-
-target_include_directories(
-    MLE
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
 
 # DCSketch lib
 add_library(
@@ -32,7 +20,6 @@ target_link_libraries(
     DCSketch
     PUBLIC
     hashfunc
-    MLE
 )
 
 # test executable

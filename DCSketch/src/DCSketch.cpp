@@ -42,7 +42,7 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
 {
     using namespace metadata;
     bits_bias = bitmap_pos * bitmap_size;
-    uint32_pos =  bits_bias/ 32;
+    uint32_pos =  bits_bias / 32;
     inner_bias = bits_bias % 32;
     shift_ = 31 - (inner_bias + bitmap_size - 1);
     uint8_t res;
@@ -59,15 +59,16 @@ uint8_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos)
 }
 
 uint32_t zero_pos;
-uint32_t tmp_arr[6] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
+uint32_t tmp_arr[Bitmap_Arr::bitmap_size] = {1<<5,1<<4,1<<3,1<<2,1<<1,1};
+bool has_zero = false;
 int Bitmap_Arr::check_bitmap_full(uint8_t input_bitmap)
 {
     if( input_bitmap == FULL_PAT )
     {
         //cout<<"FAST return."<<endl;
-        return 6;
+        return bitmap_size;  //6
     }
-    bool has_zero = false;
+    
     for(size_t i=0;i<bitmap_size;i++)
     {
         if( (tmp_arr[i] & input_bitmap) == 0)
@@ -117,20 +118,12 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     uint32_t hashres32 = static_cast<uint32_t>(hash_element[0] >> 32);
     uint32_t update_pos = L1_pos[(hashres32>>16) % hash_num];
     uint8_t bitmap_state = get_bitmap(update_pos);
-// #ifdef DEBUG_LAYER1
-//     cout<<"before changed: "<<std::bitset<6>(bitmap_state)<<endl;
-// #endif
     bool all_full = true;
     int tmp_status = check_bitmap_full(bitmap_state);
     if(tmp_status == -1)
     {
         uint32_t update_bit = static_cast<uint16_t>(hashres32) % bitmap_size;
         add_element(update_bit);
-// #ifdef DEBUG_LAYER1
-//         bitmap_state = get_bitmap(update_pos);
-//         cout<<"change bit: "<<update_bit<<endl;
-//         cout<<"after changed: "<<std::bitset<6>(bitmap_state)<<endl;
-// #endif
         all_full = false;
     }
     else
@@ -140,10 +133,7 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
 #endif
         if(tmp_status < 6)
         {
-            //cout<<"ONE bitmap_state before_change: "<<std::bitset<6>(bitmap_state)<<endl;
             add_element(tmp_status);
-            // uint8_t bitmap_state = get_bitmap(update_pos);
-            // cout<<"ONE bitmap_state after_change: "<<std::bitset<6>(bitmap_state)<<endl;
         }
         for(size_t i = 0;i < hash_num;i++)
         {
@@ -161,11 +151,7 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
             }
             if(tmp_status < 6)
             {
-                // cout<<"ONE bitmap_state before_change: "<<std::bitset<6>(bitmap_state)<<endl;
                 add_element(tmp_status);
-                // uint8_t bitmap_state = get_bitmap(update_pos);
-                // cout<<"ONE bitmap_state after_change: "<<std::bitset<6>(bitmap_state)<<endl;
-                //add_element(tmp_status);
             }
         }
     }
@@ -631,72 +617,3 @@ uint32_t DCSketch::query_spread(string flowid)
     return ret;
 }
 
-
-uint32_t DCSketch::query_spread_offline(string flowid)
-{
-    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
-    array<uint32_t,2> bm_zero_num = layer1.get2bitmap_zeronum(hash_flowid);
-    if (bm_zero_num[0] == 1 && bm_zero_num[1] == 1) //both 2 bitmaps are full
-    {
-        array<uint32_t,2> hll_vals = layer2.get2hll_vals(hash_flowid);
-        if(hll_vals[0] > 2*hll_vals[1] || hll_vals[1] > 2*hll_vals[0])
-            return 19 + 2*min(hll_vals[0],hll_vals[1]);
-        size_t low_bound = (hll_vals[0] + hll_vals[1]) * (1 - 0.1856 * 2);
-        size_t up_bound = (hll_vals[0] + hll_vals[1]) * (1 + 0.1856 * 2);
-        double max_prob = 0;
-        uint32_t ret_spread = mle_esti.find_max(hll_vals, low_bound, up_bound);
-        return 19 + ret_spread;
-    }
-    else
-    {
-        return query_spread(flowid);
-    }
-}
-
-// DCSketch::DCSketch(string dataset,string filename)
-// {
-//     offline = true;
-//     string ifile_path = "../../DCSketch/metadata/" + dataset + "/";
-//     ifstream ifile_hand;
-//     ifile_hand = ifstream(ifile_path + filename.substr(filename.size() - 4) + "sketch.txt");
-//     if(!ifile_hand)
-//     {
-//         cout<<"fail to open files."<<endl;
-//         return;
-//     }
-//     offline_layer1.resize(layer1.bitmap_num);
-//     offline_layer2.resize(layer2.HLL_num);
-//     string str;
-//     getline(ifile_hand,str);
-//     cout << str << endl;
-//     for(size_t i = 0;i < offline_layer1.size();i++)
-//     {
-//         ifile_hand >> offline_layer1[i];
-//     }
-//     getline(ifile_hand,str);
-//     cout << str << endl;
-//     for(size_t i = 0;i < offline_layer2.size();i++)
-//     {
-//         ifile_hand >> offline_layer2[i];
-//     }
-// }
-
-// double max_prob = 0;
-// uint32_t ret_spread = 1;
-// for(size_t spread = 1;spread < 19;spread++)
-// {
-//     double prob_spread = 0;
-//     for (size_t bm1_s = 0;bm1_s <= spread;bm1_s++)
-//     {
-//         double cond_p1 = mle_esti.prob_cond_bm(bm_zero_num[0], bm1_s);
-//         double cond_p2 = mle_esti.prob_cond_bm(bm_zero_num[1], spread - bm1_s);
-//         double bm1_s_prob = mle_esti.prob_s1_val(bm1_s,spread);
-//         prob_spread += cond_p1 * cond_p2 * bm1_s_prob;
-//     }
-//     if(prob_spread > max_prob)
-//     {
-//         max_prob = prob_spread;
-//         ret_spread = spread;
-//     }
-// }
-// return ret_spread;

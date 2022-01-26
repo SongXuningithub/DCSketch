@@ -2,7 +2,6 @@
 #define _DCSKETCH_H_
 
 #include "hashfunc.h"
-#include "MLE.h"
 #include<iostream>
 #include<cmath>
 #include<string>
@@ -45,7 +44,7 @@ public:
     array <uint32_t,memory*1024*8/32> raw{};
     array<uint8_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
-    static const uint8_t FULL_PAT  = 255>>2;
+    static const uint8_t FULL_PAT  = 255>>(8 - bitmap_size);
 #define BITMAP_FULL_FLAG 435.0
     Bitmap_Arr();
     static constexpr double thresh_ratio = 1.256 / 2;
@@ -188,16 +187,7 @@ public:
     uint32_t query_spread_offline(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
     void update_mean_error();
-    //Offline
-    MLE mle_esti;
-    void offline_init();
 };
-
-
-void DCSketch::offline_init()
-{
-    mle_esti.MLE_Init(layer1_flows, layer2_flows, layer1_elements, layer2_elements, layer1.bitmap_num, layer2.HLL_num);
-}
 
 
 DCSketch::DCSketch()
