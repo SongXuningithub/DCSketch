@@ -18,25 +18,25 @@ void write_superspreaders(string dataset,string filename,vector<IdSpread>& super
 bool per_src_flow = true;
 int main()
 {
-// #define OUTPUT_PERFLOW_SPREAD 1
-#define OUTPUT_SUPER_SPREADERS 1
+#define OUTPUT_PERFLOW_SPREAD 1
+// #define OUTPUT_SUPER_SPREADERS 1
 //#define OUTPUT_SKETCH 1
 //#define OUTPUT_REAL_DISTRIBUTION 1
     
-    string dataset = "KAGGLE";
+    string dataset = "MAWI";
     if(dataset == "CAIDA")
     {
         per_src_flow = false;
         cout<<"per_src_flow = false"<<endl;
     }
 
-    for(size_t i = 1;i <= 1;i++)
+    for(size_t i = 1;i <= 2;i++)
     {
-        DCSketch dcsketch;
-        // string filename = "pkts_frag_0000" + to_string(i);
+        DCSketch dcsketch(1000,0.6);
+        string filename = "pkts_frag_0000" + to_string(i);
         // string filename = "5M_frag (" + to_string(i) + ")";
-        string filename = "Unicauca";
-        PCAP_SESSION session(dataset,filename,CSV_FILE);
+        // string filename = "Unicauca";
+        PCAP_SESSION session(dataset,filename,PCAP_FILE);
         IP_PACKET cur_packet;
         string srcip,dstip;
         clock_t startTime,endTime;
@@ -49,14 +49,14 @@ int main()
                 dcsketch.process_element(srcip,dstip);
             else
                 dcsketch.process_element(dstip,srcip);
-            if(session.proc_num()%1000000 == 0)
-            {
-                cout<<"process packet "<<session.proc_num()<<endl;
-            }
+            // if(session.proc_num()%1000000 == 0)
+            // {
+            //     cout<<"process packet "<<session.proc_num()<<endl;
+            // }
         }
         endTime = clock();
         cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-        dcsketch.update_mean_error();
+        dcsketch.get_global_info();
     #ifdef OUTPUT_PERFLOW_SPREAD
         write_perflow_spread(dataset,filename,dcsketch);
     #endif

@@ -19,10 +19,10 @@ uint32_t CDS::hash_funs(uint32_t i, uint32_t x)
 
 void CDS::update(string flowid, string element)
 {
-    uint32_t st = stoul(flowid);
-    uint32_t dt = stoul(element);
+    uint32_t st = IPstrtoUint32(flowid);
+    uint32_t dt = IPstrtoUint32(element);
     uint32_t base = 0;
-    uint32_t fsd = str_hash32(flowid + element,HASH_SEED);
+    uint32_t fsd = str_hash32(flowid + element,HASH_SEED) % v;
     for(size_t i = 0;i < 3;i++)
     {
         uint32_t col = base + hash_funs(i, st);
@@ -63,12 +63,12 @@ uint32_t CDS::get_cardinality(uint32_t x)
 
 uint32_t CDS::get_cardinality(vector<uint8_t> vec)
 {
-    double zero_num = 0;
-    for(size_t i = 0;i < v;i++)
+    uint32_t one_num = 0;
+    for(size_t i = 0;i < vec.size();i++)
     {
-        if(vec[i/8] & (128 >> (i%8)) == 0 )
-            zero_num++;
+        one_num += get_one_num(vec[i]);
     }
+    double zero_num = v - one_num;
     if(zero_num == 0)
         zero_num = 1;
     uint32_t res = v * log(v / zero_num);
@@ -77,6 +77,7 @@ uint32_t CDS::get_cardinality(vector<uint8_t> vec)
 
 void CDS::FindSuperCols()
 {
+    GetInverse();
     //get F1OD
     array<uint32_t,3> F1;
     uint32_t base = 0;
@@ -103,7 +104,7 @@ void CDS::FindSuperCols()
     }
     for(size_t i = 0;i < mi[1];i++)
     {
-        uint32_t tmp = get_cardinality(data[i]);
+        uint32_t tmp = get_cardinality(data[mi[0] + i]);
         if(tmp > thresh)
             cols2.push_back(i);
     } 
@@ -121,9 +122,9 @@ void CDS::FindSuperCols()
 void CDS::GetInverse()
 {
     uint64_t tmp = 1;
-    while (true)
+    while (tmp < mi[0])
     {
-        if(tmp * Mi[0] % M == 1)
+        if(tmp * Mi[0] % mi[0] == 1)
         {
             Mi_inverse[0] = tmp;
             break;
@@ -131,9 +132,9 @@ void CDS::GetInverse()
         tmp++;
     }
     tmp = 1;
-    while (true)
+    while (tmp < mi[1])
     {
-        if(tmp * Mi[1] % M == 1)
+        if(tmp * Mi[1] % mi[1] == 1)
         {
             Mi_inverse[1] = tmp;
             break;
@@ -142,7 +143,7 @@ void CDS::GetInverse()
     }
 }
 
-void CDS::DetectSuperSpreaders(set<uint32_t>& superspreaders)
+void CDS::DetectSuperSpreaders(vector<IdSpread>& superspreaders)
 {
     FindSuperCols();
     set<uint32_t> candidates;
@@ -153,7 +154,7 @@ void CDS::DetectSuperSpreaders(set<uint32_t>& superspreaders)
         {
             uint64_t c2 = cols2[j];
             uint64_t y_hat = Mi[0] * Mi_inverse[0] * c1 + Mi[1] * Mi_inverse[1] * c2;
-            while (y_hat >= M || y_hat >= (p - y_hat)/M)
+            while (y_hat >= M ) //|| y_hat >= (p - y_hat)/M
             {
                 y_hat -= M;
             }
@@ -170,11 +171,11 @@ void CDS::DetectSuperSpreaders(set<uint32_t>& superspreaders)
     superspreaders.clear();
     for (auto iter : candidates)
     {
-        if(get_cardinality(iter) >= thresh)
+        uint32_t tmp_card = get_cardinality(iter);
+        string tmp_flow = Uint32toIPstr(iter);
+        if(tmp_card >= thresh)
         {
-            superspreaders.insert(iter);
+            superspreaders.push_back(IdSpread(tmp_flow, tmp_card));
         }
     }
-    
-
 }

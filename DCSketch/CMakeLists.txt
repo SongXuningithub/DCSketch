@@ -20,6 +20,7 @@ target_link_libraries(
     DCSketch
     PUBLIC
     hashfunc
+    utility
 )
 
 # test executable

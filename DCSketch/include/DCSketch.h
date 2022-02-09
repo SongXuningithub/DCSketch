@@ -2,6 +2,7 @@
 #define _DCSKETCH_H_
 
 #include "hashfunc.h"
+#include "util.h"
 #include<iostream>
 #include<cmath>
 #include<string>
@@ -27,35 +28,37 @@ using std::unordered_map;
 #define MAX_UINT16 65535
 #define MAX_UINT32 4294967295
 uint32_t get_leading_zeros(uint32_t bitstr);
+/*
+TO DO:
+(1) uint8 --> uint16 for LC
+(2) bitset for LC
+*/
+
 
 /*
 Layer1:     A "special" sketch which consists of lots of small bitmaps(rather than counters), which are
             used to record spreads of small flows. Flows which have "filled" all its hashed bitmaps will
             resort to layer2 to record them.  
 */
-static const uint32_t memory_size = 1000; //kB
 
 class Bitmap_Arr{
 public:
-    static const uint32_t memory = memory_size * 3 / 5;      //kB
+    uint32_t memory;// = memory_size * 3 / 5;      //kB
     static const uint32_t bitmap_size = 6;      //bits
-    static const uint32_t bitmap_num = memory * 1024 * 8 / bitmap_size;
-    static const uint32_t hash_num = 2;
-    array <uint32_t,memory*1024*8/32> raw{};
-    array<uint8_t,bitmap_size> patterns;
+    uint32_t bitmap_num;
+    vector<uint32_t> raw;  
+    array<uint16_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
-    static const uint8_t FULL_PAT  = 255>>(8 - bitmap_size);
-#define BITMAP_FULL_FLAG 435.0
-    Bitmap_Arr();
-    static constexpr double thresh_ratio = 1.256 / 2;
-    
-    uint8_t get_bitmap(uint32_t bitmap_pos);
-    array<uint32_t,2> get2bitmap_zeronum(array<uint64_t,2>& hash_flowid);
-    int check_bitmap_full(uint8_t input_bitmap);
-    bool add_element(uint32_t bit_pos);
+    static const uint16_t FULL_PAT  = (1 << bitmap_size) - 1;
+    uint32_t capacity;
+#define BITMAP_FULL_FLAG -1
+
+    Bitmap_Arr(uint32_t memory_);    
+    uint16_t get_bitmap(uint32_t bitmap_pos);
+    int check_bitmap_full(uint16_t input_bitmap);
+    bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     double get_spread(string flowid, array<uint64_t,2>& hash_flowid);
-    uint32_t get_spread(uint32_t pos);
 };
 
 /*
@@ -66,26 +69,23 @@ Layer 2:    A sketch which consists of HyperLogLog estimators. In another word, 
 
 class HLL_Arr{
 public:
-    static const uint32_t memory = memory_size * 2 / 5;  //kB
+    uint32_t memory; //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
     static const uint32_t register_num = 32;
     static const uint32_t register_size = 4;
     static const uint32_t HLL_size = register_num * register_size;
-    static const uint32_t HLL_num = memory * 1024 * 8 / HLL_size;
-    static constexpr double alpha_m = 0.673; 
-    static constexpr double alpha_m_sqm = alpha_m * register_num * register_num; 
-    static constexpr double LC_thresh = 2.5 * register_num; 
-    array<uint8_t,memory * 1024 * 8 / 8> HLL_raw{};
-    static constexpr double thresh_ratio = 2.103 / 2;
+    uint32_t HLL_num;
+    double alpha_m, alpha_m_sqm, LC_thresh; 
+    vector<uint8_t> HLL_raw;
     array<double,1<<register_size> exp_table;
 
+    HLL_Arr(uint32_t memory_);
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid);
     uint32_t get_spread(uint32_t pos);
-    array<uint32_t,2> get2hll_vals(array<uint64_t,2>& hash_flowid);
     class Table_Entry{
     public:
         string flowid;
@@ -97,26 +97,8 @@ public:
     vector<Table_Entry> hash_table; 
     void insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64);
     
-    HLL_Arr()
-    {
-        for(size_t i = 0;i <= HLL_raw.size();i++)
-        {
-            HLL_raw[i] = 0;
-        }
-        hash_table.resize(tab_size);
-        for(size_t i = 0;i < exp_table.size();i++)
-        {
-            exp_table[i] = pow(2.0, 0.0 - i);
-        }
-    }
+    
 };
-
-/*
-Layer 3:    A hash table which store <key,value> pairs where the key is the flow ID and the value is 
-            its BJKST array. Each unit(or integer) of the array has 16 bits, which is more than that(
-            10 bits) in Layer2. So the resolution of Layer3 is higher and valid estimation range is 
-            larger.
-*/
 
 class Global_HLLs{
 public:
@@ -152,60 +134,25 @@ Global_HLLs::Global_HLLs()
     }
 }
 
-struct IdSpread
-{
-public:
-    string flowID;
-    uint32_t spread;
-    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
-};
-
-bool IdSpreadComp(IdSpread& a, IdSpread& b)
-{
-    return a.spread > b.spread;
-}
-
 class DCSketch{
 public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
+
     Global_HLLs global_hlls;
-    array<uint32_t,2001> Error_RMV;
-    bool layer1_err_remove;
-    bool layer2_err_remove;
-    uint32_t layer1_flows;
-    uint32_t layer2_flows;
-    uint32_t layer1_elements;
-    uint32_t layer2_elements;
-    uint32_t L1_mean_error;
-    uint32_t L2_mean_error;
-    DCSketch();
+    uint32_t layer1_flows, layer2_flows, layer1_elements, layer2_elements;
+    DCSketch(uint32_t memory_size, double layer1_ratio);
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     uint32_t query_spread_offline(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
-    void update_mean_error();
+    void get_global_info();
 };
 
 
-DCSketch::DCSketch()
-{
-    string ifile_name = "../../DCSketch/support/error_removal.txt";
-    ifstream ifile_hand;
-    ifile_hand = ifstream(ifile_name);
-    if(!ifile_hand)
-    {
-        cout<<"fail to open support files."<<endl;
-        return;
-    }
-    while(!ifile_hand.eof())
-    {
-        uint32_t ratio;
-        uint32_t error_val;
-        ifile_hand >> ratio;
-        ifile_hand >> error_val;
-        Error_RMV[ratio] = error_val;
-    }
+DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
+layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
+
 }
 
 #endif

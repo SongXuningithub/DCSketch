@@ -191,18 +191,6 @@ void Vector_Bloom_Filter::Generate_IP(BF_Table& input1,BF_Table& input2,BF_Table
     }
 }
 
-string uint32toIPstr(uint32_t val)
-{
-    string ret = "";
-    for(size_t i = 0;i < 4;i++)
-    {
-        uint8_t tmpval = (val >> (i * 8)) & 255;
-        string tmpstr = to_string(tmpval);
-        ret = (string(3 - tmpstr.length(), '0') + tmpstr) + ret;
-    }
-    return ret;
-}
-
 void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>& superspreaders)
 {
     BF_Table H12;
@@ -217,7 +205,7 @@ void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>& superspreaders)
     {
         uint32_t v = IP.order_nums[row];
         vector<uint8_t> V_v = IP.raw[row];
-        string ipstr = uint32toIPstr(v);
+        string ipstr = Uint32toIPstr(v);
         uint32_t h5v = VBF_hash_1to5(5,empty_tuple,ipstr);
         vector<uint8_t> A5_v = tables[4].raw[h5v]; 
         for(size_t i = 0;i < V_v.size();i++)

@@ -8,9 +8,11 @@
 #include<algorithm>
 #include<set>
 #include"hashfunc.h"
+#include"util.h"
 using namespace std;
 
 #define HASH_SEED 92317
+
 
 class CDS
 {
@@ -19,9 +21,9 @@ public:
     // static const uint32_t m_2 = 16369; 
     // static const uint32_t m_3 = 16361;
     array<uint64_t,3> mi = {16067, 16369, 16361};
-    array<uint32_t,2> Mi = {mi[1],mi[0]};
-    uint32_t M = Mi[0] * Mi[1];
-    array<uint32_t,2> Mi_inverse;
+    array<uint64_t,2> Mi = {mi[1], mi[0]};
+    uint64_t M = mi[0] * mi[1];
+    array<uint64_t,2> Mi_inverse;
 
     uint32_t v;
     static const uint32_t H = 2;
@@ -43,8 +45,8 @@ public:
     void FindSuperCols();
     void GetInverse();
 
-    void DetectSuperSpreaders(set<uint32_t>& superspreaders);
-
+    void DetectSuperSpreaders(vector<IdSpread>& superspreaders);
+    //void DetectSuperChanges(set<uint32_t>& superchanges);
 };
 
 

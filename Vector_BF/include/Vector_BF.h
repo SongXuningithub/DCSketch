@@ -7,6 +7,7 @@
 #include <array>
 #include <algorithm>
 #include "hashfunc.h"
+#include "util.h"
 using namespace std;
 
 class BF_Table{
@@ -20,19 +21,6 @@ public:
     void update(uint32_t row,uint32_t col);
     void process_packet(string srcip,string dstip);
 };
-
-struct IdSpread
-{
-public:
-    string flowID;
-    uint32_t spread;
-    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
-};
-
-bool IdSpreadComp(IdSpread& a, IdSpread& b)
-{
-    return a.spread > b.spread;
-}
 
 class Vector_Bloom_Filter{
 public:

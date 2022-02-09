@@ -18,4 +18,17 @@ target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC
     hashfunc
+    utility
+)
+
+add_executable(
+    test_DCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test_dcs.cpp
+)
+
+target_link_libraries(
+    test_DCS
+    PUBLIC
+    ${PROJECT_NAME}
+    mylibpcap
 )
