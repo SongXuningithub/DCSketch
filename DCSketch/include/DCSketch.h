@@ -4,6 +4,7 @@
 #include "hashfunc.h"
 #include "util.h"
 #include<iostream>
+#include<bitset>
 #include<cmath>
 #include<string>
 #include<fstream>
@@ -51,6 +52,7 @@ public:
     array<double,bitmap_size + 1> spreads;
     static const uint16_t FULL_PAT  = (1 << bitmap_size) - 1;
     uint32_t capacity;
+    static constexpr double thresh_ratio = 1.256 / 2;  //error removal
 #define BITMAP_FULL_FLAG -1
 
     Bitmap_Arr(uint32_t memory_);    
@@ -58,7 +60,7 @@ public:
     int check_bitmap_full(uint16_t input_bitmap);
     bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
-    double get_spread(string flowid, array<uint64_t,2>& hash_flowid);
+    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
 };
 
 /*
@@ -79,13 +81,14 @@ public:
     double alpha_m, alpha_m_sqm, LC_thresh; 
     vector<uint8_t> HLL_raw;
     array<double,1<<register_size> exp_table;
+    static constexpr double thresh_ratio = 2.103 / 2;
 
     HLL_Arr(uint32_t memory_);
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
-    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid);
-    uint32_t get_spread(uint32_t pos);
+    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
+
     class Table_Entry{
     public:
         string flowid;
@@ -123,10 +126,8 @@ public:
 };
 
 
-Global_HLLs::Global_HLLs()
-{
-    for(size_t i = 0;i < register_num;i++)
-    {
+Global_HLLs::Global_HLLs(){
+    for(size_t i = 0;i < register_num;i++){
         Layer1_flows[i] = 0;
         Layer1_elements[i] = 0;
         Layer2_flows[i] = 0;
@@ -137,14 +138,16 @@ Global_HLLs::Global_HLLs()
 class DCSketch{
 public:
     Bitmap_Arr layer1;
+    
     HLL_Arr layer2;
 
     Global_HLLs global_hlls;
     uint32_t layer1_flows, layer2_flows, layer1_elements, layer2_elements;
+    uint32_t L1_mean_error = 0, L2_mean_error = 0;
+    array<uint32_t,2001> Error_RMV;
     DCSketch(uint32_t memory_size, double layer1_ratio);
     void process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
-    uint32_t query_spread_offline(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
     void get_global_info();
 };
@@ -152,7 +155,20 @@ public:
 
 DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
 layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
-
+    string ifile_name = "../../DCSketch/support/error_removal.txt";
+    ifstream ifile_hand;
+    ifile_hand = ifstream(ifile_name);
+    if(!ifile_hand){
+        cout<<"fail to open support files."<<endl;
+        return;
+    }
+    while(!ifile_hand.eof()){
+        uint32_t ratio;
+        uint32_t error_val;
+        ifile_hand >> ratio;
+        ifile_hand >> error_val;
+        Error_RMV[ratio] = error_val;
+    }
 }
 
 #endif

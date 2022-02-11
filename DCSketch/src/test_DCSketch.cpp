@@ -20,8 +20,6 @@ int main()
 {
 #define OUTPUT_PERFLOW_SPREAD 1
 // #define OUTPUT_SUPER_SPREADERS 1
-//#define OUTPUT_SKETCH 1
-//#define OUTPUT_REAL_DISTRIBUTION 1
     
     string dataset = "MAWI";
     if(dataset == "CAIDA")
@@ -32,7 +30,7 @@ int main()
 
     for(size_t i = 1;i <= 2;i++)
     {
-        DCSketch dcsketch(1000,0.6);
+        DCSketch dcsketch(750,0.6);
         string filename = "pkts_frag_0000" + to_string(i);
         // string filename = "5M_frag (" + to_string(i) + ")";
         // string filename = "Unicauca";
