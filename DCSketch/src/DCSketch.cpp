@@ -23,13 +23,9 @@ Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
     for(size_t i = 0;i < bitmap_size;i++)
         patterns[i] = 1 << (bitmap_size - i - 1);
     
-    // spreads[0] = ( ln_bmsize - log(1) ) / (ln_bmsize - ln_bmsize_minu1);
-    // for(size_t i = 0;i <= bitmap_size;i++)
-    //     spreads[i] bitmap_size
-    
     double ln_bmsize = log(bitmap_size);
     double ln_bmsize_minu1 = log(bitmap_size - 1);
-    // spreads[0] = ( ln_bmsize - log(1) ) / (ln_bmsize - ln_bmsize_minu1);
+
     for(size_t i = 1;i <= bitmap_size;i++)
         spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
     spreads[0] = spreads[1]; 
@@ -175,7 +171,7 @@ HLL_Arr::HLL_Arr(uint32_t memory_){
     hash_table.resize(tab_size);
     for(size_t i = 0;i < exp_table.size();i++)
         exp_table[i] = pow(2.0, 0.0 - i);
-    alpha_m = 0.673; 
+    alpha_m = 0.697; 
     alpha_m_sqm = alpha_m * register_num * register_num; 
     LC_thresh = 2.5 * register_num; 
 }
@@ -315,8 +311,7 @@ void DCSketch::report_superspreaders(vector<IdSpread>& superspreaders){
     sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
 }
 
-void Global_HLLs::update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element)
-{
+void Global_HLLs::update_layer1(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element){
     //mumber of distinct flows
     uint32_t hashres_32 = static_cast<uint32_t>(hash_flowid[0]);
     uint8_t lz_num = get_leading_zeros(hashres_32);
@@ -342,8 +337,7 @@ void Global_HLLs::update_layer2(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     Layer2_elements[reg_pos] = max(static_cast<uint8_t>(lz_num + 1) , Layer2_elements[reg_pos]);
 }
 
-uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers)
-{
+uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers){
     double inv_sum = 0;
     for(size_t i = 0;i < HLL_registers.size();i++)
         inv_sum += pow(2,0-(int)HLL_registers[i]);
@@ -359,8 +353,7 @@ uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers
     return E;
 }
 
-array<uint8_t,Global_HLLs::register_num> Global_HLLs::HLL_union(array<uint8_t,register_num>& HLL_registers1,array<uint8_t,register_num>& HLL_registers2)
-{
+array<uint8_t,Global_HLLs::register_num> Global_HLLs::HLL_union(array<uint8_t,register_num>& HLL_registers1,array<uint8_t,register_num>& HLL_registers2){
     array<uint8_t,register_num> vsketch;
     for(size_t i = 0;i < HLL_registers1.size();i++)
         vsketch[i] = max(HLL_registers1[i] , HLL_registers2[i]);
@@ -414,8 +407,7 @@ void DCSketch::get_global_info() {
     return;
 }
 
-uint32_t DCSketch::query_spread(string flowid)
-{
+uint32_t DCSketch::query_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     uint32_t spread_layer1 = layer1.get_spread(flowid, hash_flowid, L1_mean_error);
     uint32_t ret;

@@ -68,8 +68,7 @@ public:
 
 struct MinHeapCmp
 {
-    inline bool operator()(const FLOW &x, const FLOW &y)
-    {
+    inline bool operator()(const FLOW &x, const FLOW &y){
         return x.flow_spread > y.flow_spread;
     }
 };
