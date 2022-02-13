@@ -3,7 +3,6 @@ Distribution_Estimation/files
 rerskt/output
 bSkt/output
 get_groundtruth
-#calc_accuracy
 build
 SpreadSketch/output
 Vector_BF/output
