@@ -20,3 +20,15 @@ target_link_libraries(
     hashfunc
     utility
 )
+
+add_executable(
+    test_vHLL
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/test_vHLL.cpp
+)
+
+target_link_libraries(
+    test_vHLL
+    PUBLIC
+    ${PROJECT_NAME}
+    mylibpcap
+)

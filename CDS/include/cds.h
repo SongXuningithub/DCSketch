@@ -14,8 +14,7 @@ using namespace std;
 #define HASH_SEED 92317
 
 
-class CDS
-{
+class CDS{
 public:
     // static const uint32_t m_1 = 16067; 
     // static const uint32_t m_2 = 16369; 
@@ -32,7 +31,8 @@ public:
     vector<uint32_t> cols1;  //indexes of super columns
     vector<uint32_t> cols2;
     static constexpr double phi = 0.001;
-    uint32_t thresh;
+    static const uint32_t ss_thresh = 1000;        //super column of superspreader
+    static const uint32_t sc_thresh = 1000;        //super column of superchanges
     CDS(uint32_t mem); //kB
     
     static const uint64_t n = (static_cast<uint64_t>(1) << 32) - 1;
@@ -46,7 +46,7 @@ public:
     void GetInverse();
 
     void DetectSuperSpreaders(vector<IdSpread>& superspreaders);
-    //void DetectSuperChanges(set<uint32_t>& superchanges);
+    void DetectSuperChanges(CDS& prevCDS, vector<IdSpread>& superchanges);
 };
 
 

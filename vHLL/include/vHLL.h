@@ -9,8 +9,10 @@
 using namespace std;
 
 class vHLL{
+public:
     uint32_t memory;
     static const uint32_t HLL_size = 128;
+    static const uint32_t glb_HLL_size = 512;
     static const uint32_t register_size = 5;
     uint32_t register_num;
     vector<uint32_t> raw;

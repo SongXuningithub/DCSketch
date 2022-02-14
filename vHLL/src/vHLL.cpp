@@ -5,11 +5,11 @@ namespace regOP{
     uint32_t bits_bias;
     uint32_t uint32_pos;
     uint32_t inner_bias;
-    uint32_t shift_;
+    int shift_;
     vector<uint64_t> zero_patterns(64);
 }
 
-vHLL::vHLL(uint32_t mem): global_HLL(128){
+vHLL::vHLL(uint32_t mem): global_HLL(glb_HLL_size){
     memory = mem;  //kB
     register_num = memory * 1024 * 8 / 5;
     raw.resize(memory * 1024 * 8 / 32 + 1);
@@ -25,14 +25,21 @@ uint8_t vHLL::get_register(uint32_t reg_pos){
     bits_bias = reg_pos * register_size;
     uint32_pos =  bits_bias / 32;
     inner_bias = bits_bias % 32;
-    shift_ = 31 - (inner_bias + register_size - 1);
-    uint8_t res;
-    if(shift_ >= 0) 
-        res = static_cast<uint8_t>(raw[uint32_pos] >> shift_);
-    else
-        res = static_cast<uint8_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
-    res &= 31;
-    return res;
+
+    uint64_t tmp = (static_cast<uint64_t>(raw[uint32_pos])<<32) + raw[uint32_pos+1];
+    uint8_t ans = (tmp >> (64 - inner_bias - 5)) & 31;
+    return ans; 
+
+    // shift_ = 31 - (inner_bias + register_size - 1);
+    // uint8_t res;
+    // if(shift_ >= 0) 
+    //     res = static_cast<uint8_t>(raw[uint32_pos] >> shift_);
+    // else
+    //     res = static_cast<uint8_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
+    // res &= 31;
+    // if(ans1 != res){
+    //     cout<<"error"<<endl;
+    // }
 }
 
 void vHLL::set_register(uint32_t reg_pos, uint8_t val){
@@ -40,6 +47,8 @@ void vHLL::set_register(uint32_t reg_pos, uint8_t val){
     uint64_t tmp = (static_cast<uint64_t>(raw[uint32_pos]) << 32) + raw[uint32_pos + 1];
     tmp &= zero_patterns[inner_bias];
     tmp |= static_cast<uint64_t>(val)<<(59-inner_bias);
+    raw[uint32_pos] = static_cast<uint32_t>(tmp >> 32);
+    raw[uint32_pos + 1] = static_cast<uint32_t>(tmp);
 }
 
 void vHLL::process_packet(string flowID, string elementID){
@@ -51,9 +60,11 @@ void vHLL::process_packet(string flowID, string elementID){
     if(rou_x > init_val)
         set_register(reg_pos, rou_x);
 
-    init_val = global_HLL[hash_eleID & (128 - 1)];
+    uint32_t hash_flowele = str_hash32(flowID + elementID, HASH_SEED_1);
+    init_val = global_HLL[hash_flowele & (glb_HLL_size - 1)];
+    rou_x = get_leading_zeros(hash_flowele) + 1;
     if(init_val < rou_x)
-        global_HLL[hash_eleID & (128 - 1)] = rou_x;
+        global_HLL[hash_flowele & (glb_HLL_size - 1)] = rou_x;
 }
 
 uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){
@@ -84,5 +95,7 @@ uint32_t vHLL::get_spread(string flowID){
     double m = register_num, s = HLL_size;
     double n_hat = get_spread(global_HLL);
     double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
+    if (ans < 0)
+        ans = 0;
     return round(ans);
 }

@@ -7,11 +7,11 @@
 #include <set>
 #include <algorithm>
 #include "hashfunc.h"
+#include "util.h"
 
 using namespace std;
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
-uint32_t get_leading_zeros(uint32_t bitstr);
 
 class MultiResBitmap{
 public:
@@ -20,7 +20,7 @@ public:
     static const uint32_t b_hat = 2 * b;
     static const uint32_t C = 120000;
     static const uint32_t c = 2 + 10;   //log2(C / (2.6744 * b)); == 9.47
-    static constexpr double setmax_ratio = 0.7981;
+    static constexpr double setmax_ratio = 0.9311;
     static const uint32_t mrbitmap_size = b * (c - 1) + b_hat;
     vector<vector<uint8_t>> V;
     MultiResBitmap();    
@@ -37,18 +37,6 @@ public:
     static const uint32_t bkt_size = 32 + 32 + MultiResBitmap::mrbitmap_size;
 };
 
-struct IdSpread
-{
-public:
-    string flowID;
-    uint32_t spread;
-    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
-};
-
-bool IdSpreadComp(IdSpread& a, IdSpread& b)
-{
-    return a.spread > b.spread;
-}
 
 class SpreadSketch{
 public:

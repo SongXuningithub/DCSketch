@@ -1,29 +1,33 @@
 #include "SS.h"
 #include "mylibpcap.h"
 #include <fstream>
+#include <unordered_map>
 
 void write_res(string dataset,string filename,vector<IdSpread>& superspreaders);
 bool per_src_flow = true;
 int main()
 {
-    SpreadSketch ss(2048);
+    unordered_map<string,vector<string>> datasets;
+    datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
+    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
+    datasets["KAGGLE"] = {"Unicauca"};
+
     string dataset = "MAWI"; 
-    if(dataset == "CAIDA")
-    {
+    if(dataset == "CAIDA"){
         per_src_flow = false;
         cout<<"per_src_flow = false"<<endl;
     }
-    // string filename = "5M_frag (1)";
-    string filename = "pkts_frag_00001";
-    // string filename = "Unicauca";
+
+
+    SpreadSketch ss(2048);
+    string filename = datasets[dataset][0];
     PCAP_SESSION session(dataset,filename,PCAP_FILE);
     IP_PACKET cur_packet;
     string srcip,dstip;
     
     clock_t startTime,endTime;
     startTime = clock();
-    while(int status = session.get_packet(cur_packet))
-    {
+    while(int status = session.get_packet(cur_packet)){
         srcip = cur_packet.get_srcip();
         dstip = cur_packet.get_dstip();
         if (per_src_flow)
@@ -31,9 +35,7 @@ int main()
         else
             ss.update(dstip,srcip);
         if(session.proc_num()%1000000 == 0)
-        {
             cout<<"process packet "<<session.proc_num()<<endl;
-        }
     }
     endTime = clock();
     cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
@@ -47,15 +49,12 @@ int main()
     return 0;
 }
 
-string trans2ipformat(uint32_t val)
-{
+string trans2ipformat(uint32_t val){
     string ret = "";
-    for(size_t i = 0;i < 4;i++)
-    {
+    for(size_t i = 0;i < 4;i++){
         val = val >> (8 * i);
         string tmp = to_string(val & 255);
-        while(tmp.size() != 3)
-        {
+        while(tmp.size() != 3){
             tmp = "0" + tmp;
         }
         ret = tmp + ret; 
@@ -63,20 +62,17 @@ string trans2ipformat(uint32_t val)
     return ret;
 }
 
-void write_res(string dataset, string filename, vector<IdSpread>& superspreaders)
-{
+void write_res(string dataset, string filename, vector<IdSpread>& superspreaders){
     string ofile_path = "../../SpreadSketch/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ofile_hand = ofstream(ofile_path + filename + ".txt");
-    if(!ofile_hand)
-    {
+    if(!ofile_hand){
         cout<<"fail to open files."<<endl;
         return;
     }
     bool first_line = true;
-    for(auto item : superspreaders)
-    {
+    for(auto item : superspreaders){
         if(first_line)
             first_line = false;
         else
