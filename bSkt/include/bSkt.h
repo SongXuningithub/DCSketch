@@ -9,6 +9,7 @@
 #include<algorithm>
 #include<set>
 #include "hashfunc.h"
+#include "util.h"
 using namespace std;
 
 #define HASH_SEED_1 92317
@@ -53,19 +54,6 @@ struct MinHeapCmp
         return x.flow_spread > y.flow_spread;
     }
 };
-
-struct IdSpread
-{
-public:
-    string flowID;
-    uint32_t spread;
-    IdSpread(string str,uint32_t s){flowID = str; spread = s;}
-};
-
-bool IdSpreadComp(IdSpread& a, IdSpread& b)
-{
-    return a.spread > b.spread;
-}
 
 class bSkt{
 public:

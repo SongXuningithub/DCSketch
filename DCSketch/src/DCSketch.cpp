@@ -14,7 +14,6 @@ namespace metadata{
 };
 
 Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
-    cout<<"Layer1: Bitmap array initializing:"<<endl;
     memory = memory_;
     bitmap_num = memory * 1024 * 8 / bitmap_size;
     raw.resize(memory*1024*8/32);
@@ -31,11 +30,7 @@ Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
     spreads[0] = spreads[1]; 
     capacity = floor(spreads[1] * 2);
     cout<< "The capacity of layer1 is " << capacity << endl;
-    // cout<<"Layer1 total memory cost(bit): "<<8*sizeof(raw)<<" bits"<<endl;
-    // cout<<"mempry cost(bit) per bitmap: "<<bitmap_size<<endl;
-    // cout<<"number of bitmaps in layer 1: "<<bitmap_num<<endl;
-    cout<<"Layer1: Bitmap array initialized."<<endl;
-    cout<<endl;
+    cout<< "The number of LC(bitmap)s in layer 1: " << bitmap_num << endl;
 }
 
 uint16_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
@@ -165,7 +160,7 @@ HLL_Arr::HLL_Arr(uint32_t memory_){
     memory = memory_;
     HLL_num = memory * 1024 * 8 / HLL_size;
     HLL_raw.resize(memory * 1024 * 8 / 8);
-
+    cout << "The number of HLLs in layer 2: " << HLL_num << endl;
     for(size_t i = 0;i <= HLL_raw.size();i++)
         HLL_raw[i] = 0;
     hash_table.resize(tab_size);

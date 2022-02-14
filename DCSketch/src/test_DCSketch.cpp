@@ -10,14 +10,14 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-#define OUTPUT_PERFLOW_SPREAD 1
-// #define OUTPUT_SUPER_SPREADERS 1
-#define OUTPUT_SUPER_CHANGES 1
+// #define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_SUPER_SPREADERS 1
+// #define OUTPUT_SUPER_CHANGES 1
 
-void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch);
+void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
 void write_sketch(string dataset,string filename,DCSketch& dcsketch);
-void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders);
+void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders,uint32_t tmpmem);
 void WriteSuperChanges(string dataset, vector<IdSpread>& superchanges);
 
 bool per_src_flow = true;
@@ -28,57 +28,55 @@ int main()
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
     datasets["KAGGLE"] = {"Unicauca"};
 
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
     if(dataset == "CAIDA"){
         per_src_flow = false;
         cout<<"per_src_flow = false"<<endl;
     }
+
 #ifndef OUTPUT_SUPER_CHANGES
+    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    for(auto tmpmem : mems){
+        cout << "memory: " << tmpmem << endl;
+        for(size_t i = 0;i < 1;i++){   //datasets[dataset].size()
+            DCSketch dcsketch(tmpmem, 0.6);
+            string filename = datasets[dataset][i];
+            PCAP_SESSION session(dataset,filename,PCAP_FILE);
 
-    for(size_t i = 1;i <= 2;i++)
-    {
-        DCSketch dcsketch(750,0.6);
-        string filename = "pkts_frag_0000" + to_string(i);
-        // string filename = "5M_frag (" + to_string(i) + ")";
-        // string filename = "Unicauca";
-        PCAP_SESSION session(dataset,filename,PCAP_FILE);
-        IP_PACKET cur_packet;
-        string srcip,dstip;
-        clock_t startTime,endTime;
-        startTime = clock();
-        while(int status = session.get_packet(cur_packet)){
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if (per_src_flow)
-                dcsketch.process_element(srcip,dstip);
-            else
-                dcsketch.process_element(dstip,srcip);
-            // if(session.proc_num()%1000000 == 0)
-            // {
-            //     cout<<"process packet "<<session.proc_num()<<endl;
-            // }
+            IP_PACKET cur_packet;
+            string srcip,dstip;
+            clock_t startTime,endTime;
+            startTime = clock();
+            while(int status = session.get_packet(cur_packet)){
+                srcip = cur_packet.get_srcip();
+                dstip = cur_packet.get_dstip();
+                if (per_src_flow)
+                    dcsketch.process_element(srcip,dstip);
+                else
+                    dcsketch.process_element(dstip,srcip);
+                // if(session.proc_num()%1000000 == 0)
+                //     cout<<"process packet "<<session.proc_num()<<endl;
+            }
+            endTime = clock();
+            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            dcsketch.get_global_info();
+        #ifdef OUTPUT_PERFLOW_SPREAD
+            write_perflow_spread(dataset,filename,dcsketch,tmpmem);
+        #endif
+        
+        #ifdef OUTPUT_SUPER_SPREADERS
+            vector<IdSpread> superspreaders;
+            startTime = clock();
+            dcsketch.report_superspreaders(superspreaders);
+            endTime = clock();
+            cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            write_superspreaders(dataset,filename,superspreaders,tmpmem);
+        #endif
         }
-        endTime = clock();
-        cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-        dcsketch.get_global_info();
-    #ifdef OUTPUT_PERFLOW_SPREAD
-        write_perflow_spread(dataset,filename,dcsketch);
-    #endif
-    
-    #ifdef OUTPUT_SUPER_SPREADERS
-        //uint32_t threshold = 50000;//1000;
-        vector<IdSpread> superspreaders;
-        startTime = clock();
-        dcsketch.report_superspreaders(superspreaders);
-        endTime = clock();
-        cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-        write_superspreaders(dataset,filename,superspreaders);
-    #endif
     }
-    return 0;
-#endif
-
-#ifdef OUTPUT_SUPER_CHANGES
+    
+#else
     uint32_t mem = 750;
     uint32_t superchange_thresh = 1000;
 
@@ -144,25 +142,22 @@ int main()
     return 0;
 }
 
-void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
-{
+void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem){
     string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename + ".txt");
-    ofile_hand = ofstream(ofile_path + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem) + "_" + filename + ".txt");
        
-    if(!ifile_hand || !ofile_hand)
-    {
+    if(!ifile_hand || !ofile_hand){
         cout<<"fail to open files."<<endl;
         return;
     }
     // clock_t startTime,endTime;
     // startTime = clock();
     bool first_line = true;
-    while(!ifile_hand.eof())
-    {
+    while(!ifile_hand.eof()){
         if(first_line)
             first_line = false;
         else 
@@ -180,19 +175,16 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch)
     ofile_hand.close();
 }
 
-void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders)
-{
+void write_superspreaders(string dataset,string filename,vector<IdSpread>& superspreaders,uint32_t tmpmem){
     string ofile_path = "../../DCSketch/output/SuperSpreaders/" + dataset + "/";
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + filename + ".txt");
-    if(!ofile_hand)
-    {
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" +  filename + ".txt");
+    if(!ofile_hand){
         cout<<"fail to open files."<<endl;
         return;
     }
     bool first_line = true;
-    for(auto item : superspreaders)
-    {
+    for(auto item : superspreaders){
         if(first_line)
             first_line = false;
         else

@@ -95,21 +95,15 @@ uint32_t SpreadSketch::query(string flowid){
     return ret_val;
 }
 
-void SpreadSketch::output_superspreaders(vector<IdSpread>& superspreaders)
-{
+void SpreadSketch::output_superspreaders(vector<IdSpread>& superspreaders){
     superspreaders.clear();
     set<string> checked_flows;
-    for(size_t row = 0;row < r;row++)
-    {
-        for(size_t col = 0;col < w;col++)
-        {
+    for(size_t row = 0;row < r;row++){
+        for(size_t col = 0;col < w;col++){
             string tmp_K = bkt_table[row][col].K;
             if(checked_flows.find(tmp_K) != checked_flows.end())
-            {
                 continue;
-            } 
-            else
-            {
+            else{
                 checked_flows.insert(tmp_K);
                 uint32_t esti_card = query(tmp_K); 
                 superspreaders.push_back(IdSpread(tmp_K,esti_card));

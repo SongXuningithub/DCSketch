@@ -85,17 +85,15 @@ uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){
     return static_cast<uint32_t>(E);
 }
 
-uint32_t vHLL::get_spread(string flowID){
+int vHLL::get_spread(string flowID){
     vector<uint8_t> virtual_HLL(HLL_size);
     for(size_t i = 0;i < HLL_size;i++){
         uint32_t reg_pos = str_hash32(flowID + to_string(i), HASH_SEED_2) % register_num;
         virtual_HLL[i] = get_register(reg_pos);
     }
     double ns_hat = get_spread(virtual_HLL);
-    double m = register_num, s = HLL_size;
-    double n_hat = get_spread(global_HLL);
-    double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
-    if (ans < 0)
-        ans = 0;
-    return round(ans);
+    // double m = register_num, s = HLL_size;
+    // double n_hat = get_spread(global_HLL);
+    // double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
+    return round(ns_hat);
 }
