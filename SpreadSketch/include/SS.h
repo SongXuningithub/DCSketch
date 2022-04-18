@@ -25,7 +25,7 @@ public:
     vector<vector<uint8_t>> V;
     MultiResBitmap();    
     uint32_t get_ones_num(uint32_t layer);
-    void update(uint32_t hashval);
+    void update(uint32_t l, uint32_t setbit);
     uint32_t get_cardinality();
 };
 

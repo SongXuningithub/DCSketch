@@ -43,11 +43,13 @@ int main()
                     virhll.process_packet(srcip,dstip);
                 else
                     virhll.process_packet(dstip,srcip);
-                // if(session.proc_num()%1000000 == 0)
-                //     cout<<"process packet "<<session.proc_num()<<endl;
+                // if(session.proc_num()%2000000 == 0){
+                //     // cout<<"process packet "<<session.proc_num()<<endl;
+                //     break;
+                // }
             }
             endTime = clock();
-            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
             cout << "n: " << virhll.get_spread(virhll.global_HLL)<<endl; 
             write_res(dataset,filename,virhll,tmpmem);
         }

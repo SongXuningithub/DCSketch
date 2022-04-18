@@ -23,7 +23,8 @@ using std::unordered_map;
 
 //#define DEBUG_LAYER12 3
 //#define DEBUG_LAYER2 3
-#define DEBUG_LAYER1 1
+// #define DEBUG_LAYER1 1
+// #define DEBUG_OUTPUT 1
 
 #define MAX_UINT8 255
 #define MAX_UINT16 65535
@@ -105,10 +106,10 @@ public:
 
 class Global_HLLs{
 public:
-    static const uint32_t register_num = 128;
+    static const uint32_t register_num = 1024;
     static const uint32_t register_size = 5;
-    static const uint32_t HLL_size = register_num * register_size;
-    static constexpr double alpha_m = 0.7213/(1+1.079/128); 
+    // static const uint32_t HLL_size = register_num * register_size;
+    static constexpr double alpha_m = 0.7213/(1+1.079/register_num); 
     array<uint8_t,register_num> Layer1_flows{};
     array<uint8_t,register_num> Layer1_elements{};
     array<uint8_t,register_num> Layer2_flows{};
@@ -150,6 +151,7 @@ public:
     uint32_t query_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
     void get_global_info();
+    array<double,2> GetLoadFactor();
 };
 
 

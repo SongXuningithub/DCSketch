@@ -57,9 +57,9 @@ struct MinHeapCmp
 
 class bSkt{
 public:
-#define HLL_MODE 1
-// #define Bitmap_MODE 1
-    bool DETECT_SUPERSPREADER = true;
+// #define HLL_MODE 1
+#define Bitmap_MODE 1
+    bool DETECT_SUPERSPREADER = false;
     static const uint32_t memory = 1000;  //kB
 
 #ifdef HLL_MODE

@@ -12,7 +12,8 @@
 using namespace std;
 
 // #define TEST_PERFLOW_ACC 1
-#define TEST_SUPERSPREADER_ACC 1
+// #define TEST_SUPERSPREADER_ACC 1
+#define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_recall(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
@@ -27,8 +28,8 @@ int main()
 
 #ifdef TEST_PERFLOW_ACC
     string dataset = "CAIDA";
-    // string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
-    string filepath = "../../vHLL/output/" + dataset + "/";
+    string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
+    // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
@@ -74,7 +75,7 @@ int main()
     thresholds["CAIDA"] = {8000, 3400, 1800};
     thresholds["KAGGLE"] = {1000};
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
 
     vector<uint32_t> mems{500, 1000, 1500, 2000};
     for(uint32_t threshold : thresholds[dataset]){
@@ -89,7 +90,8 @@ int main()
             ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
             // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
             // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + filename + ".txt"); 
-            // ifstream ifile_esti("../../bSkt/SuperSpreader/"+dataset+"/" + filename + ".txt"); 
+            // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
+            // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + filename + ".txt");
 
             if(!ifile_truth || !ifile_esti){
                 cout<<"unable to open file"<<endl;
@@ -104,7 +106,7 @@ int main()
                     superspreaders.push_back(IdSpread(flowid,true_spread));
             }
             vector<IdSpread> superspreaders_esti;
-            double tuned_threshold = threshold * (1 - 0.3 * 0.1856);
+            double tuned_threshold = threshold * (1 - 0.4 * 0.1856);
             while(!ifile_esti.eof()){
                 string flowid;
                 uint32_t esti_spread;
@@ -118,14 +120,80 @@ int main()
             ifile_truth.close();
             double prec = get_precision(superspreaders_esti, superspreaders);
             double recall = get_recall(superspreaders_esti, superspreaders);
-            double F1_Score = 2 * prec * recall / (prec + recall);
+            double F1_Score;
+            if(recall == 0 && prec == 0)
+                F1_Score = -1;
+            else
+                F1_Score = 2 * prec * recall / (prec + recall);
             double rel_error = get_error(superspreaders_esti, superspreaders);
+            cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+        }
+    }
+#endif
+
+#ifdef TEST_SUPERCHANGES_ACC
+    
+    unordered_map<string,vector<uint32_t>> thresholds;
+    thresholds["MAWI"] = {5000, 4000};
+    thresholds["CAIDA"] = {5000, 4000};
+    thresholds["KAGGLE"] = {100};
+
+    string dataset = "CAIDA";
+
+    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    for(uint32_t threshold : thresholds[dataset]){
+        cout << "threshold: " << threshold << endl;
+        for(auto tmpmem : mems){
+            cout << "memory: " << tmpmem << "   ";
+        
+            ifstream ifile_truth("../../get_groundtruth/SuperChanges/" + dataset + ".txt");
+            
+            string filename = to_string(tmpmem) + "_" + dataset;
+            ifstream ifile_esti("../../DCSketch/output/SuperChanges/"+ dataset+ "/" + filename + ".txt"); 
+            // ifstream ifile_esti("../../CDS/output/SuperChanges/"+dataset+"/" + filename + ".txt");
+
+            if(!ifile_truth || !ifile_esti){
+                cout<<"unable to open file"<<endl;
+                return 0;
+            }
+            vector<IdSpread> superchanges;
+            while(!ifile_truth.eof()){
+                string flowid;
+                uint32_t true_spread;
+                ifile_truth >> flowid >> true_spread;
+                if (true_spread >= threshold)
+                    superchanges.push_back(IdSpread(flowid,true_spread));
+            }
+            vector<IdSpread> superchanges_esti;
+            double tuned_threshold = threshold * (1 - 0.4 * 0.1856);
+            while(!ifile_esti.eof()){
+                string flowid;
+                uint32_t esti_spread;
+                ifile_esti >> flowid >> esti_spread;
+                if(esti_spread >= tuned_threshold)
+                    superchanges_esti.push_back(IdSpread(flowid,esti_spread));
+                else
+                    break;
+            }
+            ifile_esti.close();
+            ifile_truth.close();
+            double prec = get_precision(superchanges_esti, superchanges);
+            double recall = get_recall(superchanges_esti, superchanges);
+            double F1_Score;
+            if(recall == 0 && prec == 0)
+                F1_Score = -1;
+            else
+                F1_Score = 2 * prec * recall / (prec + recall);
+            double rel_error = get_error(superchanges_esti, superchanges);
             cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
         }
     }
 #endif
     return 0;
 }
+
+
+
 
 double get_error(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set){
     double total_error = 0;
@@ -155,6 +223,8 @@ double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set){
             }
         }  
     }
+    if(esti_set.size() == 0)
+        return -1;
     return static_cast<double>(hit_num)/esti_set.size();
 }
 

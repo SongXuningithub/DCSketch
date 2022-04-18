@@ -26,6 +26,5 @@ target_link_libraries(
     test_rerskt
     PUBLIC
     rerskt
-    hashfunc
     mylibpcap
 )

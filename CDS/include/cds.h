@@ -32,7 +32,7 @@ public:
     vector<uint32_t> cols2;
     static constexpr double phi = 0.001;
     static const uint32_t ss_thresh = 1000;        //super column of superspreader
-    static const uint32_t sc_thresh = 1000;        //super column of superchanges
+    static const uint32_t sc_thresh = 100;        //super column of superchanges
     CDS(uint32_t mem); //kB
     
     static const uint64_t n = (static_cast<uint64_t>(1) << 32) - 1;

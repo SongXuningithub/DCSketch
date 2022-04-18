@@ -27,13 +27,10 @@ uint32_t MultiResBitmap::get_ones_num(uint32_t layer){
     return setbit_num;
 }
 
-void MultiResBitmap::update(uint32_t hashval){
-    uint32_t l = get_leading_zeros(hashval);
+void MultiResBitmap::update(uint32_t l, uint32_t setbit){
     if(l < c - 1){
-        uint32_t setbit = hashval % b;
         V[l][setbit / 8] |= (128 >> (setbit % 8));
     } else {
-        uint32_t setbit = hashval % b_hat;
         V[c - 1][setbit / 8] |= (128 >> (setbit % 8));
     }
 }
@@ -69,12 +66,20 @@ SpreadSketch::SpreadSketch(uint32_t mem){
 
 void SpreadSketch::update(string flowid, string elementid){
     uint32_t hashres32 = str_hash32(flowid + elementid, HASH_SEED_1);
-    uint32_t l = get_leading_zeros(hashres32);
     array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_2);
     array<uint32_t,4> hashres32_arr{hashres128[0]>>32, static_cast<uint32_t>(hashres128[0]), hashres128[1]>>32, static_cast<uint32_t>(hashres128[1])}; 
+
+    uint32_t l = get_leading_zeros(hashres32);
+    uint32_t setbit;
+    if(l < MultiResBitmap::c - 1){
+        setbit = hashres32 % MultiResBitmap::b;
+    } else {
+        setbit = hashres32 % MultiResBitmap::b_hat;
+    }
+    
     for(size_t i = 0;i < r;i++){
         uint32_t idx = hashres32_arr[i] % w; //str_hash32(flowid + to_string(i), HASH_SEED_2) % w;
-        bkt_table[i][idx].mrbitmap.update(hashres32);
+        bkt_table[i][idx].mrbitmap.update(l, setbit);
         if(bkt_table[i][idx].L <= l){
             bkt_table[i][idx].K = flowid; //static_cast<uint32_t>(stoul(flowid));
             bkt_table[i][idx].L = l;

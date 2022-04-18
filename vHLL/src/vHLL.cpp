@@ -65,6 +65,37 @@ void vHLL::process_packet(string flowID, string elementID){
     rou_x = get_leading_zeros(hash_flowele) + 1;
     if(init_val < rou_x)
         global_HLL[hash_flowele & (glb_HLL_size - 1)] = rou_x;
+
+    //detect superspreaders
+    if(DETECT_SUPERSPREADER == false)
+        return;
+    uint32_t flowsrpead = get_spread(flowID);
+    FLOW tmpflow;
+    tmpflow.flowid = flowID;  tmpflow.flow_spread = flowsrpead;
+    if(inserted.find(flowID) != inserted.end()){
+        for(auto iter = heap.begin();iter != heap.end();iter++){
+            if(iter->flowid == flowID){
+                iter->flow_spread = flowsrpead;
+                make_heap(iter, heap.end(), MinHeapCmp());
+                break;
+            }
+        }
+        return;
+    }    
+    if(heap.size() < heap_size){
+        heap.push_back(tmpflow);
+        inserted.insert(flowID);
+    } else {
+        std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+        if(flowsrpead >= heap[0].flow_spread){
+            inserted.erase(heap[0].flowid);
+            pop_heap(heap.begin(), heap.end(), MinHeapCmp());
+            heap.pop_back();
+            heap.push_back(tmpflow);
+            std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
+            inserted.insert(flowID);
+        }
+    }
 }
 
 uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){

@@ -29,7 +29,8 @@ Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
         spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
     spreads[0] = spreads[1]; 
     capacity = floor(spreads[1] * 2);
-    cout<< "The capacity of layer1 is " << capacity << endl;
+
+    // cout<< "The capacity of layer1 is " << capacity << endl;
     cout<< "The number of LC(bitmap)s in layer 1: " << bitmap_num << endl;
 }
 
@@ -334,16 +335,17 @@ void Global_HLLs::update_layer2(array<uint64_t,2>& hash_flowid, array<uint64_t,2
 
 uint32_t Global_HLLs::get_cardinality(array<uint8_t,register_num>& HLL_registers){
     double inv_sum = 0;
-    for(size_t i = 0;i < HLL_registers.size();i++)
+    uint32_t TmpHLLSize = HLL_registers.size();
+    for(size_t i = 0;i < TmpHLLSize;i++)
         inv_sum += pow(2,0-(int)HLL_registers[i]);
-    double E = alpha_m * 128 * 128 / inv_sum;
-    if(E <= 2.5 * 128){
+    double E = alpha_m * TmpHLLSize * TmpHLLSize / inv_sum;
+    if(E <= 2.5 * TmpHLLSize){
         uint32_t zeros_num = 0;
-        for(size_t i = 0;i < HLL_registers.size();i++){
+        for(size_t i = 0;i < TmpHLLSize;i++){
             if(HLL_registers[i] == 0)
                 zeros_num++;
         }
-        E = 128 * log((double)128/zeros_num);
+        E = TmpHLLSize * log((double)TmpHLLSize/zeros_num);
     }
     return E;
 }
@@ -391,14 +393,15 @@ void DCSketch::get_global_info() {
         L1_mean_error = Error_RMV[layer1_elements/layer1.bitmap_num];
     if(layer2_flows > layer2.thresh_ratio * layer2.HLL_num)
         L2_mean_error = Error_RMV[layer2_elements/layer2.HLL_num];//global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
-
-    cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<global_hlls.get_number_elements(LAYER1)<<endl;
-    cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<global_hlls.get_number_elements(LAYER2)<<endl;
-    cout<<"L1_mean_error: "<<L1_mean_error<<"  L2_mean_error: "<<L2_mean_error<<endl;
     auto vsketch_1 = global_hlls.HLL_union(global_hlls.Layer1_flows , global_hlls.Layer2_flows);
     auto vsketch_2 = global_hlls.HLL_union(global_hlls.Layer1_elements , global_hlls.Layer2_elements);
-    cout<<"number of flows: " <<global_hlls.get_cardinality(vsketch_1) << endl;
-    cout<<"number of elements: " <<global_hlls.get_cardinality(vsketch_2) << endl;
+#ifdef DEBUG_OUTPUT
+    cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<layer1_elements<<endl;
+    cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<layer2_elements<<endl;
+    cout<<"L1_mean_error: "<<L1_mean_error<<"  L2_mean_error: "<<L2_mean_error<<endl;
+    cout<<"total number of flows: " <<global_hlls.get_cardinality(vsketch_1) << endl;
+    cout<<"total number of elements: " <<global_hlls.get_cardinality(vsketch_2) << endl;
+#endif
     return;
 }
 
@@ -415,3 +418,8 @@ uint32_t DCSketch::query_spread(string flowid){
     return ret;
 }
 
+array<double,2> DCSketch::GetLoadFactor(){
+    double L1factor = (double)layer1_flows / layer1.bitmap_num;
+    double L2factor = (double)layer2_flows / layer2.HLL_num;
+    return array<double,2>{L1factor,L2factor};
+}

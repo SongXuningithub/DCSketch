@@ -9,9 +9,9 @@
 #include <algorithm>
 using namespace std;
 
-// #define PER_FLOW_INFO 1
+#define PER_FLOW_INFO 1
 // #define SUPER_SPREADERS 1
-#define SUPER_CHANGES 1
+// #define SUPER_CHANGES 1
 
 bool per_src_flow = true;
 
@@ -24,8 +24,8 @@ int main()
 #ifdef PER_FLOW_INFO
     unordered_map<string,set<string>> truth;
     string dataset = "KAGGLE";
-    //string filename = "5M_frag (5)";
-    // string filename = "pkts_frag_00002";
+    // string filename = "5M_frag (1)";
+    // string filename = "pkts_frag_00001";
     string filename = "Unicauca";
     int fstrlen = filename.length();
     PCAP_SESSION session(dataset,filename,CSV_FILE);
@@ -34,72 +34,71 @@ int main()
     // ofstream truthfile("../../get_groundtruth/truth/IMC/" + filename.substr(fstrlen-4,fstrlen)+".txt",ios::binary);
     // ofstream truthglobal_file("../../get_groundtruth/truth/IMC/" + filename.substr(fstrlen-4,fstrlen)+"_global.txt",ios::binary);
 
-    while(int status = session.get_packet(cur_packet))
-    {
+    while(int status = session.get_packet(cur_packet)){
         string flowid;
-        if (per_src_flow)
-        {
+        if (per_src_flow){
             flowid = cur_packet.get_srcip();
             truth[flowid].insert(cur_packet.get_dstip());
-        }
-        else
-        {
+        } else {
             flowid = cur_packet.get_dstip();
             truth[flowid].insert(cur_packet.get_srcip());
         }
-        if(session.proc_num()%2000000 == 0)
-            //break;
+        if(session.proc_num()%1000000 == 0){
             cout<<"have processed "<<session.proc_num()<<" packets."<<endl;
-    }
-
-
-    ofstream truthfile;
-    ofstream truthglobal_file;
-    truthfile.open("../../get_groundtruth/truth/"+ dataset + "/" + filename+".txt",ios::binary);
-    truthglobal_file.open("../../get_groundtruth/truth/"+ dataset + "/" + filename+"_global.txt",ios::binary);
-    
-    if(!truthfile || !truthglobal_file)
-    {
-        cout<<"fail to open"<<endl;
-        return -1;
-    }
-    uint32_t bigger_16 = 0;
-    uint32_t bigger_64 = 0;
-    uint32_t bigger_200 = 0;
-    uint32_t bigger_1000 = 0;
-    uint32_t biggest_spread = 0;
-    bool first_line = true;
-    for(auto iter = truth.begin();iter!=truth.end();iter++)
-    {
-        if(first_line)
-            first_line = false;
-        else 
-            truthfile << endl;
-        uint32_t cur_spread = iter->second.size();
-        if(cur_spread>16)
-        {
-            if(cur_spread>1000)
-                bigger_1000++;
-            if(cur_spread>200)
-                bigger_200++;    
-            if(cur_spread>64)
-                bigger_64++; 
-            bigger_16++;
-            truthglobal_file << iter->first<<"  "<<cur_spread<<endl;
-            if(cur_spread > biggest_spread)
-                biggest_spread = cur_spread;
         }
-        truthfile << iter->first<<"  "<<cur_spread;
     }
-    truthglobal_file<<"total items: "<<session.proc_num()<<endl;
-    truthglobal_file<<"number of flows: "<<truth.size()<<endl;
-    truthglobal_file<<"flows with spread bigger than 16: "<<bigger_16<<endl;
-    truthglobal_file<<"flows with spread bigger than 64: "<<bigger_64<<endl;
-    truthglobal_file<<"flows with spread bigger than 200: "<<bigger_200<<endl;
-    truthglobal_file<<"flows with spread bigger than 1000: "<<bigger_1000<<endl;
-    truthglobal_file<<"biggest spread: "<<biggest_spread<<endl;
-    truthfile.close();
-    truthglobal_file.close();
+
+    uint32_t comb_spread = 0;
+    for(auto iter = truth.begin();iter!=truth.end();iter++){
+        comb_spread += iter->second.size();
+    }
+    cout << "comb_spread: "<< comb_spread << endl;
+
+
+    // ofstream truthfile;
+    // ofstream truthglobal_file;
+    // truthfile.open("../../get_groundtruth/truth/"+ dataset + "/" + filename+"_2.txt",ios::binary);
+    // truthglobal_file.open("../../get_groundtruth/truth/"+ dataset + "/" + filename+"_2_global.txt",ios::binary);
+    
+    // if(!truthfile || !truthglobal_file){
+    //     cout<<"fail to open"<<endl;
+    //     return -1;
+    // }
+    // uint32_t bigger_16 = 0;
+    // uint32_t bigger_64 = 0;
+    // uint32_t bigger_200 = 0;
+    // uint32_t bigger_1000 = 0;
+    // uint32_t biggest_spread = 0;
+    // bool first_line = true;
+    // for(auto iter = truth.begin();iter!=truth.end();iter++){
+    //     if(first_line)
+    //         first_line = false;
+    //     else 
+    //         truthfile << endl;
+    //     uint32_t cur_spread = iter->second.size();
+    //     if(cur_spread>16){
+    //         if(cur_spread>1000)
+    //             bigger_1000++;
+    //         if(cur_spread>200)
+    //             bigger_200++;    
+    //         if(cur_spread>64)
+    //             bigger_64++; 
+    //         bigger_16++;
+    //         truthglobal_file << iter->first<<"  "<<cur_spread<<endl;
+    //         if(cur_spread > biggest_spread)
+    //             biggest_spread = cur_spread;
+    //     }
+    //     truthfile << iter->first<<"  "<<cur_spread;
+    // }
+    // truthglobal_file<<"total items: "<<session.proc_num()<<endl;
+    // truthglobal_file<<"number of flows: "<<truth.size()<<endl;
+    // truthglobal_file<<"flows with spread bigger than 16: "<<bigger_16<<endl;
+    // truthglobal_file<<"flows with spread bigger than 64: "<<bigger_64<<endl;
+    // truthglobal_file<<"flows with spread bigger than 200: "<<bigger_200<<endl;
+    // truthglobal_file<<"flows with spread bigger than 1000: "<<bigger_1000<<endl;
+    // truthglobal_file<<"biggest spread: "<<biggest_spread<<endl;
+    // truthfile.close();
+    // truthglobal_file.close();
 #endif
 
 #ifdef SUPER_SPREADERS
@@ -153,8 +152,9 @@ int main()
 #endif
 
 #ifdef SUPER_CHANGES
-    string dataset = "MAWI";
-    int scthresh = 1000;
+    datasets["KAGGLE"] = {"Unicauca_1", "Unicauca_2"};
+    string dataset = "KAGGLE";
+    int scthresh = 100;
     
     unordered_map<string,uint32_t> kv1;
     unordered_map<string,uint32_t> kv2;
@@ -226,6 +226,11 @@ int main()
         }
     }
 
+    vector<IdSpread> FinalOutputs;
+    for(auto iter : superchanges)
+        FinalOutputs.push_back(IdSpread(iter.first, iter.second)); 
+    sort(FinalOutputs.begin(), FinalOutputs.end(), IdSpreadComp);
+
     ofstream truthfile;
     truthfile.open("../../get_groundtruth/SuperChanges/" + dataset + ".txt",ios::binary);
     if(!truthfile){
@@ -233,12 +238,12 @@ int main()
         return -1;
     }
     bool first_line = true;
-    for(auto iter : superchanges){
+    for(auto iter : FinalOutputs){
         if(first_line)
             first_line = false;
         else 
             truthfile << endl;
-        truthfile << iter.first << " " << iter.second;
+        truthfile << iter.flowID << " " << iter.spread;
     }
     truthfile.close();
 #endif

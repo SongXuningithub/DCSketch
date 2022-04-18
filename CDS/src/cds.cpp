@@ -139,6 +139,7 @@ void CDS::DetectSuperSpreaders(vector<IdSpread>& superspreaders){
 }
 
 void CDS::DetectSuperChanges(CDS& prevCDS, vector<IdSpread>& superchanges){
+    FindSuperCols();
     vector<uint32_t> tmp_cols1;  //indexes of super columns
     vector<uint32_t> tmp_cols2;
     for(size_t i = 0;i < mi[0];i++){

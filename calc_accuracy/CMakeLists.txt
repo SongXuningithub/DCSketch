@@ -9,3 +9,11 @@ target_link_libraries(
     PUBLIC
     utility
 )
+
+add_executable(param_setting ${CMAKE_CURRENT_SOURCE_DIR}/src/param_setting.cpp)
+
+target_link_libraries(
+    param_setting
+    PUBLIC
+    utility
+)

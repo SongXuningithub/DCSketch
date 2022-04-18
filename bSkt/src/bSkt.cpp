@@ -1,35 +1,27 @@
 #include "bSkt.h"
 
-uint8_t HLL::get_leading_zeros(uint32_t bitstr)
-{
-    for(size_t i = 1;i <= 32;i++)
-    {
+uint8_t HLL::get_leading_zeros(uint32_t bitstr){
+    for(size_t i = 1;i <= 32;i++){
         if( ((bitstr<<i)>>i) != bitstr )
             return i - 1;
     }
     return 32;
 }
 
-void HLL::record_element(uint32_t hashres)
-{
+void HLL::record_element(uint32_t hashres){
     uint8_t lz_num = get_leading_zeros(hashres) + 1;
     uint32_t reg_pos = hashres & (register_num - 1);
     HLL_registers[reg_pos] = max(lz_num , HLL_registers[reg_pos]);
 }
 
-int HLL::get_spread()
-{
+int HLL::get_spread(){
     double inv_sum = 0;
     for(size_t i = 0;i < HLL_registers.size();i++)
-    {
         inv_sum += pow(2,0-HLL_registers[i]);
-    }
     double E = alpha_m * register_num * register_num / inv_sum;
-    if(E <= 2.5 * register_num)
-    {
+    if(E <= 2.5 * register_num){
         uint32_t zeros_num = 0;
-        for(size_t i = 0;i < HLL_registers.size();i++)
-        {
+        for(size_t i = 0;i < HLL_registers.size();i++){
             if(HLL_registers[i] == 0)
                 zeros_num++;
         }
@@ -40,33 +32,26 @@ int HLL::get_spread()
     return (int)E;
 }
 
-void Bitmap::reset()
-{
+void Bitmap::reset(){
     for(size_t i = 0;i < raw.size();i++)
-    {
         raw[i] = 0;
-    }
 }
 
-void Bitmap::record_element(uint32_t hashres)
-{
+void Bitmap::record_element(uint32_t hashres){
     uint32_t unit_pos = hashres % bitnum;
     uint32_t bitmap_pos = unit_pos / 8;
     raw[bitmap_pos] |= 1 << (7 - (unit_pos % 8));
 }
 
-uint32_t Bitmap::get_unitval(uint32_t bitpos)
-{
+uint32_t Bitmap::get_unitval(uint32_t bitpos){
     uint32_t bitmap_pos = bitpos / 8;
     uint32_t res =  1 & (raw[bitmap_pos] >> (7 - (bitpos % 8)));
     return res;
 }
 
-int Bitmap::get_spread()
-{
+int Bitmap::get_spread(){
     uint32_t empty_bits = 0;
-    for(size_t i = 0;i < size();i++)
-    {
+    for(size_t i = 0;i < size();i++){
         uint32_t tmp = get_unitval(i);
         if(tmp == 0)
             empty_bits++;
@@ -77,12 +62,10 @@ int Bitmap::get_spread()
     return static_cast<int>(card);
 }
 
-void bSkt::process_packet(string flowid,string element)
-{
+void bSkt::process_packet(string flowid,string element){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
-    for(size_t i = 0;i < 4;i++)
-    {
+    for(size_t i = 0;i < 4;i++){
         uint32_t tmp_flow_hash = static_cast<uint32_t>( hash_flowid[i/2] >> ( ((i+1) % 2) * 32 ) );
         uint32_t tmp_element_hash = static_cast<uint32_t>( hash_element[i/2] >> ( ((i+1) % 2) * 32 ) );
         uint32_t Estimator_pos = tmp_flow_hash % table_size;
@@ -92,14 +75,10 @@ void bSkt::process_packet(string flowid,string element)
         return;
     uint32_t flowsrpead = get_flow_spread(flowid);
     FLOW tmpflow;
-    tmpflow.flowid = flowid;  
-    tmpflow.flow_spread = flowsrpead;
-    if(inserted.find(flowid) != inserted.end())
-    {
-        for(auto iter = heap.begin();iter != heap.end();iter++)
-        {
-            if(iter->flowid == flowid)
-            {
+    tmpflow.flowid = flowid;  tmpflow.flow_spread = flowsrpead;
+    if(inserted.find(flowid) != inserted.end()){
+        for(auto iter = heap.begin();iter != heap.end();iter++){
+            if(iter->flowid == flowid){
                 iter->flow_spread = flowsrpead;
                 make_heap(iter, heap.end(), MinHeapCmp());
                 break;
@@ -107,24 +86,17 @@ void bSkt::process_packet(string flowid,string element)
         }
         return;
     }    
-    if(heap.size() < heap_size)
-    {
+    if(heap.size() < heap_size){
         heap.push_back(tmpflow);
         inserted.insert(flowid);
         // std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
-        for(size_t i = 1;i < heap.size();i++)
-        {
-            if(heap[0].flow_spread > heap[i].flow_spread)
-            {
-                cout<<"heap error"<<endl;
-            }
-        }
-    }
-    else
-    {
+        // for(size_t i = 1;i < heap.size();i++){
+        //     if(heap[0].flow_spread > heap[i].flow_spread)
+        //         cout<<"heap error"<<endl;
+        // }
+    } else {
         std::push_heap(heap.begin(), heap.end(), MinHeapCmp());
-        if(flowsrpead >= heap[0].flow_spread)
-        {
+        if(flowsrpead >= heap[0].flow_spread){
             inserted.erase(heap[0].flowid);
             pop_heap(heap.begin(), heap.end(), MinHeapCmp());
             heap.pop_back();
@@ -135,12 +107,10 @@ void bSkt::process_packet(string flowid,string element)
     }
 }
 
-uint32_t bSkt::get_flow_spread(string flowid)
-{
+uint32_t bSkt::get_flow_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     uint32_t spread = 1<<30;
-    for(size_t i = 0;i < 4;i++)
-    {
+    for(size_t i = 0;i < 4;i++){
         uint32_t tmp_flow_hash = static_cast<uint32_t>( hash_flowid[i/2] >> ( ((i+1) % 2) * 32 ) );
         uint32_t Estimator_pos = tmp_flow_hash % table_size;
         uint32_t tmp = tables[i][Estimator_pos].get_spread();
