@@ -75,7 +75,7 @@ public:
     uint32_t memory; //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
-    static const uint32_t register_num = 32;
+    static const uint32_t register_num = 64;
     static const uint32_t register_size = 4;
     static const uint32_t HLL_size = register_num * register_size;
     uint32_t HLL_num;
@@ -143,11 +143,11 @@ public:
     HLL_Arr layer2;
 
     Global_HLLs global_hlls;
-    uint32_t layer1_flows, layer2_flows, layer1_elements, layer2_elements;
+    int layer1_flows, layer2_flows, layer1_elements, layer2_elements;
     uint32_t L1_mean_error = 0, L2_mean_error = 0;
     array<uint32_t,2001> Error_RMV;
     DCSketch(uint32_t memory_size, double layer1_ratio);
-    void process_element(string flowid,string element);
+    uint32_t process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
     void get_global_info();

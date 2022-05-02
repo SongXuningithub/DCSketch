@@ -7,12 +7,13 @@
 #include <set>
 #include <memory>
 #include <algorithm>
+#include <unordered_map>
 #include <unistd.h>
 using std::unique_ptr;
 
-// #define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_PERFLOW_SPREAD 1
 // #define OUTPUT_SUPER_SPREADERS 1
-#define OUTPUT_SUPER_CHANGES 1
+// #define OUTPUT_SUPER_CHANGES 1
 
 void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
@@ -28,7 +29,7 @@ int main()
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
     datasets["KAGGLE"] = {"Unicauca"};
 
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
     if(dataset == "CAIDA"){
         per_src_flow = false;
         cout<<"per_src_flow = false"<<endl;
@@ -40,18 +41,33 @@ int main()
     vector<uint32_t> mems{1000};
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        for (size_t i = 0; i < 1; i++){  //datasets[dataset].size()
+        for (size_t i = 1; i < 2; i++){  //datasets[dataset].size()
             DCSketch dcsketch(tmpmem, 0.6);
             string filename = datasets[dataset][i];
-            PCAP_SESSION session(dataset,filename,PCAP_FILE);
+            PCAP_SESSION session(dataset, filename, PCAP_FILE);
 
             IP_PACKET cur_packet;
             string srcip,dstip;
             clock_t startTime,endTime;
             startTime = clock();
+
+            // set<pair<string,string>> layer1_items;
+            // set<pair<string,string>> layer2_items;
+            // set<string> layer2_flows;
+
             while(int status = session.get_packet(cur_packet)){
                 srcip = cur_packet.get_srcip();
                 dstip = cur_packet.get_dstip();
+                // swap(srcip, dstip);
+
+                // uint32_t layer = dcsketch.process_element(srcip,dstip);
+                // if (layer == 1)
+                //     layer1_items.insert(pair<string,string>(srcip, dstip));
+                // else{
+                //     layer2_items.insert(pair<string,string>(srcip, dstip));
+                //     layer2_flows.insert(srcip);
+                // }
+                    
                 if (per_src_flow)
                     dcsketch.process_element(srcip,dstip);
                 else
@@ -59,11 +75,17 @@ int main()
                 // if(session.proc_num()%1000000 == 0)
                 //     cout<<"process packet "<<session.proc_num()<<endl;
             }
+            // set<pair<string,string>> inter_items; 
+            // set_intersection(layer1_items.begin(), layer1_items.end(), layer2_items.begin(), layer2_items.end(),
+            //     inserter(inter_items, inter_items.begin()));
+            // cout << "inter_items: " << inter_items.size() << " layer2_flows: " << layer2_flows.size() << " average " <<
+            // static_cast<double>(inter_items.size()) / layer2_flows.size()  <<endl;
+
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
             dcsketch.get_global_info();
         #ifdef OUTPUT_PERFLOW_SPREAD
-            write_perflow_spread(dataset,filename,dcsketch,tmpmem);
+            // write_perflow_spread(dataset,filename,dcsketch,tmpmem);
         #endif
         
         #ifdef OUTPUT_SUPER_SPREADERS
@@ -225,5 +247,39 @@ void WriteSuperChanges(string dataset, vector<IdSpread>& superchanges, uint32_t 
             ofile_hand << endl;
         ofile_hand << item.flowID << " " << item.spread;
     }
+    ofile_hand.close();
+}
+
+
+void write_meta(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem){
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    string ofile_path = "../../DCSketch/output/MetaData/" + dataset + "/";
+    ifstream ifile_hand;
+    ofstream ofile_hand;
+    ifile_hand = ifstream(ifile_path + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem) + "_" + filename + ".txt");
+       
+    if(!ifile_hand || !ofile_hand){
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    // clock_t startTime,endTime;
+    // startTime = clock();
+    bool first_line = true;
+    while(!ifile_hand.eof()){
+        if(first_line)
+            first_line = false;
+        else 
+            ofile_hand << endl;
+        string flowid;
+        uint32_t spread;
+        ifile_hand >> flowid;
+        ifile_hand >> spread;
+        uint32_t estimated_spread = dcsketch.query_spread(flowid);
+        ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
+    }
+    // endTime = clock();
+    // cout << "The query time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    ifile_hand.close();
     ofile_hand.close();
 }

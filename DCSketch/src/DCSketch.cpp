@@ -53,17 +53,6 @@ uint32_t zero_pos;
 bool has_zero = false;
 
 int Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
-    // bitset<bitmap_size> bm(input_bitmap);
-    // uint32_t zero_num = bitmap_size - bm.count();
-    // if(zero_num == 0)
-    //     return bitmap_size; 
-    // if(zero_num == 1){
-    //     for(size_t i = 0;i < bitmap_size;i++){
-    //         if(bm[i] == 0)
-    //             return bitmap_size - 1 - i;
-    //     }
-    // }
-    // return -1;
     if( input_bitmap == FULL_PAT ){
         //cout<<"FAST return."<<endl;
         return bitmap_size;  
@@ -151,10 +140,15 @@ uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, u
     }
     if(all_full)
         return BITMAP_FULL_FLAG;
-    if (min_spread > error_)
-        return round((min_spread - error_) * 2);
-    else
+    uint32_t ans = round((min_spread - error_) * 2);
+    if (ans < 1)
         return 1;
+    return ans;
+
+    // if (min_spread > error_)
+    //     return round((min_spread - error_) * 2);
+    // else
+    //     return 1;
 }
 
 HLL_Arr::HLL_Arr(uint32_t memory_){
@@ -167,7 +161,12 @@ HLL_Arr::HLL_Arr(uint32_t memory_){
     hash_table.resize(tab_size);
     for(size_t i = 0;i < exp_table.size();i++)
         exp_table[i] = pow(2.0, 0.0 - i);
-    alpha_m = 0.697; 
+    if (register_num == 32)
+        alpha_m = 0.697; 
+    else if (register_num == 64)
+        alpha_m = 0.709;
+    else if (register_num >= 128)
+        alpha_m = 0.7213/(1 + 1.079/register_num);
     alpha_m_sqm = alpha_m * register_num * register_num; 
     LC_thresh = 2.5 * register_num; 
 }
@@ -253,10 +252,15 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
             res_2 = register_num * log(register_num / (double)V_);
     }
     double min_spread = min(res_1,res_2);
-    if(min_spread > error_)
-        return round(2 * (min_spread - error_));
-    else
-        return 0;
+    uint32_t ans = round((min_spread - error_) * 2);
+    if (ans < 1)
+        return 1;
+    return ans;
+
+    // if(min_spread > error_)
+    //     return round(2 * (min_spread - error_));
+    // else
+    //     return 0;
 }
 
 void HLL_Arr::insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64){
@@ -371,16 +375,17 @@ uint32_t Global_HLLs::get_number_elements(uint32_t layer){
         return get_cardinality(Layer2_elements);
 }
 
-void DCSketch::process_element(string flowid,string element) {
+uint32_t DCSketch::process_element(string flowid,string element) {
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
     bool layer1_full = layer1.process_packet(hash_flowid,hash_element);
     if(!layer1_full){
         global_hlls.update_layer1(hash_flowid,hash_element);
-        return;
+        return 1;
     }
     layer2.process_packet(flowid,hash_flowid,hash_element);
     global_hlls.update_layer2(hash_flowid,hash_element);
+    return 2;
 }
 
 void DCSketch::get_global_info() {
@@ -393,8 +398,13 @@ void DCSketch::get_global_info() {
         L1_mean_error = Error_RMV[layer1_elements/layer1.bitmap_num];
     if(layer2_flows > layer2.thresh_ratio * layer2.HLL_num)
         L2_mean_error = Error_RMV[layer2_elements/layer2.HLL_num];//global_hlls.get_number_elements(LAYER2) * 2 / layer2.HLL_num;
+    
+    cout<<"L1_mean_error: "<<L1_mean_error<<"  L2_mean_error: "<<L2_mean_error<<endl;
+
     auto vsketch_1 = global_hlls.HLL_union(global_hlls.Layer1_flows , global_hlls.Layer2_flows);
     auto vsketch_2 = global_hlls.HLL_union(global_hlls.Layer1_elements , global_hlls.Layer2_elements);
+    int overlapping_Bias = layer2_elements + layer1_elements - (int)global_hlls.get_cardinality(vsketch_2);
+    cout << "overlapping_Bias: " << overlapping_Bias << "  average overlapping bias: " << overlapping_Bias / static_cast<double>(layer2_flows) << endl;
 #ifdef DEBUG_OUTPUT
     cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<layer1_elements<<endl;
     cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<layer2_elements<<endl;
