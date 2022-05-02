@@ -81,6 +81,7 @@ public:
     uint32_t HLL_num;
     double alpha_m, alpha_m_sqm, LC_thresh; 
     vector<uint8_t> HLL_raw;
+    vector<uint8_t> reg_sums;
     array<double,1<<register_size> exp_table;
     static constexpr double thresh_ratio = 2.103 / 2;
 

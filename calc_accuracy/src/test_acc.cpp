@@ -11,9 +11,9 @@
 #include "util.h"
 using namespace std;
 
-// #define TEST_PERFLOW_ACC 1
+#define TEST_PERFLOW_ACC 1
 // #define TEST_SUPERSPREADER_ACC 1
-#define TEST_SUPERCHANGES_ACC 1
+// #define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_recall(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
@@ -27,13 +27,15 @@ int main()
     datasets["KAGGLE"] = {"Unicauca"};
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
     string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
-    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    // vector<uint32_t> mems{1000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;

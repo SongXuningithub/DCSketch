@@ -27,6 +27,8 @@ Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
 
     for(size_t i = 1;i <= bitmap_size;i++)
         spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
+    for(size_t i = 1;i <= bitmap_size;i++)
+        spreads[i] = bitmap_size * log(bitmap_size / static_cast<double>(i));
     spreads[0] = spreads[1]; 
     capacity = floor(spreads[1] * 2);
 
@@ -251,6 +253,12 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
         if(V_ > 0)
             res_2 = register_num * log(register_num / (double)V_);
     }
+    if (res_1 > 3 * res_2 || res_2 > 3 * res_1){
+        cout<<"false positive: "<< flowid <<endl;
+        return 0;
+    }
+        
+    
     double min_spread = min(res_1,res_2);
     uint32_t ans = round((min_spread - error_) * 2);
     if (ans < 1)
@@ -401,10 +409,10 @@ void DCSketch::get_global_info() {
     
     cout<<"L1_mean_error: "<<L1_mean_error<<"  L2_mean_error: "<<L2_mean_error<<endl;
 
-    auto vsketch_1 = global_hlls.HLL_union(global_hlls.Layer1_flows , global_hlls.Layer2_flows);
-    auto vsketch_2 = global_hlls.HLL_union(global_hlls.Layer1_elements , global_hlls.Layer2_elements);
+    auto vsketch_1 = global_hlls.HLL_union(global_hlls.Layer1_flows, global_hlls.Layer2_flows);
+    auto vsketch_2 = global_hlls.HLL_union(global_hlls.Layer1_elements, global_hlls.Layer2_elements);
     int overlapping_Bias = layer2_elements + layer1_elements - (int)global_hlls.get_cardinality(vsketch_2);
-    cout << "overlapping_Bias: " << overlapping_Bias << "  average overlapping bias: " << overlapping_Bias / static_cast<double>(layer2_flows) << endl;
+    // cout << "overlapping_Bias: " << overlapping_Bias << "  average overlapping bias: " << overlapping_Bias / static_cast<double>(layer2_flows) << endl;
 #ifdef DEBUG_OUTPUT
     cout<<"layer1 flows: "<<layer1_flows<<"  layer1 elements: "<<layer1_elements<<endl;
     cout<<"layer2 flows: "<<layer2_flows<<"  layer2 elements: "<<layer2_elements<<endl;
