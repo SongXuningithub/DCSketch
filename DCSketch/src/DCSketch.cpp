@@ -155,8 +155,9 @@ uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, u
 
 HLL_Arr::HLL_Arr(uint32_t memory_){
     memory = memory_;
-    HLL_num = memory * 1024 * 8 / HLL_size;
-    HLL_raw.resize(memory * 1024 * 8 / 8);
+    HLL_num = memory * 1024 * 8 / (HLL_size + 8);
+    HLL_raw.resize(HLL_num * register_num * 4 / 8);
+    reg_sums.resize(HLL_num);
     cout << "The number of HLLs in layer 2: " << HLL_num << endl;
     for(size_t i = 0;i <= HLL_raw.size();i++)
         HLL_raw[i] = 0;
@@ -201,7 +202,7 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
     uint32_t rou_x = get_leading_zeros(hashres32) + 1;
     uint32_t update_pos;
-    if(hash_element[0]>>63)
+    if(hash_element[1] & 1)
         update_pos = HLL_pos[0];
     else
         update_pos = HLL_pos[1];
@@ -209,13 +210,9 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     uint32_t bucket_val = get_counter_val(update_pos,bucket_pos);
     if(bucket_val < rou_x){
         set_counter_val(update_pos,bucket_pos,rou_x);
-        if (bucket_pos < Table_Entry::selected_num) {
-            //operation on hash table
-            uint8_t selected_sum1 = get_counter_val(HLL_pos[0],0)+get_counter_val(HLL_pos[0],1)+get_counter_val(HLL_pos[0],2)+get_counter_val(HLL_pos[0],3);
-            uint8_t selected_sum2 = get_counter_val(HLL_pos[1],0)+get_counter_val(HLL_pos[1],1)+get_counter_val(HLL_pos[1],2)+get_counter_val(HLL_pos[1],3);
-            uint8_t selected_sum = min(selected_sum1,selected_sum2);
-            insert_hashtab(flowid,selected_sum,hash_flowid[0]);
-        }
+        reg_sums[update_pos] += (rou_x >> 2) - (bucket_val >> 2);
+        uint8_t min_reg_sum = min(reg_sums[HLL_pos[0]], reg_sums[HLL_pos[1]]);
+        insert_hashtab(flowid, min_reg_sum, hash_flowid[0]);
     }
 }
 
@@ -253,10 +250,10 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
         if(V_ > 0)
             res_2 = register_num * log(register_num / (double)V_);
     }
-    if (res_1 > 3 * res_2 || res_2 > 3 * res_1){
-        cout<<"false positive: "<< flowid <<endl;
-        return 0;
-    }
+    // if (res_1 > 3 * res_2 || res_2 > 3 * res_1){
+    //     cout<<"false positive: "<< flowid <<endl;
+    //     return 0;
+    // }
         
     
     double min_spread = min(res_1,res_2);
@@ -271,33 +268,33 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
     //     return 0;
 }
 
-void HLL_Arr::insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64){
+void HLL_Arr::insert_hashtab(string flowid, uint8_t min_reg_sum, uint64_t hahsres64){
     uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
     uint32_t table_pos1 = (hashres32 >> 16) % tab_size;     //high 16 bits
     uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;  //low 16 bits
 
     if(hash_table[table_pos1].flowid == "" || hash_table[table_pos1].flowid == flowid){
         hash_table[table_pos1].flowid = flowid;
-        hash_table[table_pos1].selected_sum = selected_sum;
+        hash_table[table_pos1].min_reg_sum = min_reg_sum;
         return;
     }
     else if(hash_table[table_pos2].flowid == "" || hash_table[table_pos2].flowid == flowid){
         hash_table[table_pos2].flowid = flowid;
-        hash_table[table_pos2].selected_sum = selected_sum;
+        hash_table[table_pos2].min_reg_sum = min_reg_sum;
         return;
     }
 
-    uint8_t tmp1 = hash_table[table_pos1].selected_sum;
-    uint8_t tmp2 = hash_table[table_pos2].selected_sum; 
+    uint8_t tmp1 = hash_table[table_pos1].min_reg_sum;
+    uint8_t tmp2 = hash_table[table_pos2].min_reg_sum; 
     if(tmp1 > tmp2){
-        if(selected_sum >= tmp2){
+        if(min_reg_sum >= tmp2){
             hash_table[table_pos2].flowid = flowid;
-            hash_table[table_pos2].selected_sum = selected_sum;
+            hash_table[table_pos2].min_reg_sum = min_reg_sum;
         }
     } else {
-        if(selected_sum >= tmp1){
+        if(min_reg_sum >= tmp1){
             hash_table[table_pos1].flowid = flowid;
-            hash_table[table_pos1].selected_sum = selected_sum;
+            hash_table[table_pos1].min_reg_sum = min_reg_sum;
         }
     }
 }

@@ -94,8 +94,7 @@ public:
     class Table_Entry{
     public:
         string flowid;
-        uint8_t selected_sum;
-        static const uint32_t selected_num = 4;
+        uint8_t min_reg_sum;
     };
     static const uint32_t table_mem = 20; //KB
     static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);

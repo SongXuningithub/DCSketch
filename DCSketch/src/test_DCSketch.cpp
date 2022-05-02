@@ -37,8 +37,8 @@ int main()
 
 #ifndef OUTPUT_SUPER_CHANGES
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
-    // vector<uint32_t> mems{1000};
+    // vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{1000};
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
         for (size_t i = 0; i < datasets[dataset].size(); i++){  //datasets[dataset].size()

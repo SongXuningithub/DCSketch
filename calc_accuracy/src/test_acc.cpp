@@ -34,8 +34,8 @@ int main()
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
-    // vector<uint32_t> mems{1000};
+    // vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{1000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
