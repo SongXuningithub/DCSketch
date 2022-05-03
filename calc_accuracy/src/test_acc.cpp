@@ -34,12 +34,12 @@ int main()
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{1000};
+    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    // vector<uint32_t> mems{1000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
-        uint32_t filenum = datasets[dataset].size();
+        uint32_t filenum = 1;
         for (size_t i = 0;i < filenum;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
@@ -80,6 +80,7 @@ int main()
     string dataset = "CAIDA";
 
     vector<uint32_t> mems{500, 1000, 1500, 2000};
+    // vector<uint32_t> mems{1000};
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
         for(auto tmpmem : mems){
@@ -108,7 +109,7 @@ int main()
                     superspreaders.push_back(IdSpread(flowid,true_spread));
             }
             vector<IdSpread> superspreaders_esti;
-            double tuned_threshold = threshold * (1 - 0.4 * 0.1856);
+            double tuned_threshold = threshold;// * (1 - 0.4 * 0.1856);
             while(!ifile_esti.eof()){
                 string flowid;
                 uint32_t esti_spread;

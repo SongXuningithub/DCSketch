@@ -29,19 +29,19 @@ int main()
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
     datasets["KAGGLE"] = {"Unicauca"};
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
     if(dataset == "CAIDA"){
         per_src_flow = false;
         cout<<"per_src_flow = false"<<endl;
     }
 
 #ifndef OUTPUT_SUPER_CHANGES
-    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{1000};
+    // vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        for (size_t i = 0; i < datasets[dataset].size(); i++){  //datasets[dataset].size()
+        for (size_t i = 0; i < 2; i++){  //datasets[dataset].size()
             DCSketch dcsketch(tmpmem, 0.6);
             string filename = datasets[dataset][i];
             PCAP_SESSION session(dataset, filename, PCAP_FILE);
@@ -68,12 +68,13 @@ int main()
                 //     layer2_flows.insert(srcip);
                 // }
                     
-                if (per_src_flow)
-                    dcsketch.process_element(srcip,dstip);
-                else
-                    dcsketch.process_element(dstip,srcip);
+                // if (per_src_flow)
+                //     dcsketch.process_element(srcip,dstip);
+                // else
+                //     dcsketch.process_element(dstip,srcip);
                 // if(session.proc_num()%1000000 == 0)
                 //     cout<<"process packet "<<session.proc_num()<<endl;
+                break;
             }
             // set<pair<string,string>> inter_items; 
             // set_intersection(layer1_items.begin(), layer1_items.end(), layer2_items.begin(), layer2_items.end(),
@@ -85,7 +86,7 @@ int main()
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
             dcsketch.get_global_info();
         #ifdef OUTPUT_PERFLOW_SPREAD
-            write_perflow_spread(dataset,filename,dcsketch,tmpmem);
+            // write_perflow_spread(dataset,filename,dcsketch,tmpmem);
         #endif
         
         #ifdef OUTPUT_SUPER_SPREADERS
@@ -94,7 +95,7 @@ int main()
             dcsketch.report_superspreaders(superspreaders);
             endTime = clock();
             cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            // write_superspreaders(dataset,filename,superspreaders,tmpmem);
+            write_superspreaders(dataset, filename, superspreaders, tmpmem);
         #endif
         }
     }

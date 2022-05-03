@@ -13,25 +13,17 @@ namespace metadata{
     int shift_;
 };
 
-Bitmap_Arr::Bitmap_Arr(uint32_t memory_){
-    memory = memory_;
-    bitmap_num = memory * 1024 * 8 / bitmap_size;
-    raw.resize(memory*1024*8/32);
-    for(size_t i = 0;i < raw.size();i++)
-        raw[i] = 0;
-    for(size_t i = 0;i < bitmap_size;i++)
-        patterns[i] = 1 << (bitmap_size - i - 1);
+Bitmap_Arr::Bitmap_Arr(uint32_t memory_): memory(memory_), bitmap_num(memory * 1024 * 8 / bitmap_size / 2), raw(memory*1024*8/32 / 2) {
+    for(size_t i = 0;i < raw.size();i++) raw[i] = 0;
+    for(size_t i = 0;i < bitmap_size;i++) patterns[i] = 1 << (bitmap_size - i - 1);
     
     double ln_bmsize = log(bitmap_size);
     double ln_bmsize_minu1 = log(bitmap_size - 1);
 
-    for(size_t i = 1;i <= bitmap_size;i++)
-        spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
-    for(size_t i = 1;i <= bitmap_size;i++)
-        spreads[i] = bitmap_size * log(bitmap_size / static_cast<double>(i));
+    // for(size_t i = 1;i <= bitmap_size;i++) spreads[i] = ( ln_bmsize - log(i) ) / (ln_bmsize - ln_bmsize_minu1);
+    for(size_t i = 1;i <= bitmap_size;i++) spreads[i] = bitmap_size * log(bitmap_size / static_cast<double>(i));
     spreads[0] = spreads[1]; 
     capacity = floor(spreads[1] * 2);
-
     // cout<< "The capacity of layer1 is " << capacity << endl;
     cout<< "The number of LC(bitmap)s in layer 1: " << bitmap_num << endl;
 }
@@ -56,10 +48,9 @@ bool has_zero = false;
 
 int Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
     if( input_bitmap == FULL_PAT ){
-        //cout<<"FAST return."<<endl;
         return bitmap_size;  
     }
-    
+    has_zero = false;
     for(size_t i=0;i<bitmap_size;i++){
         if( (patterns[i] & input_bitmap) == 0){
             if(has_zero)
@@ -122,7 +113,7 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     return all_full;
 }
 
-uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_){
+int Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_){
     array<uint32_t,2> L1_pos;
     L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
     L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
@@ -142,7 +133,7 @@ uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, u
     }
     if(all_full)
         return BITMAP_FULL_FLAG;
-    uint32_t ans = round((min_spread - error_) * 2);
+    int ans = round((min_spread - error_) * 2);
     if (ans < 1)
         return 1;
     return ans;
@@ -153,23 +144,15 @@ uint32_t Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, u
     //     return 1;
 }
 
-HLL_Arr::HLL_Arr(uint32_t memory_){
-    memory = memory_;
-    HLL_num = memory * 1024 * 8 / (HLL_size + 8);
-    HLL_raw.resize(HLL_num * register_num * 4 / 8);
-    reg_sums.resize(HLL_num);
+HLL_Arr::HLL_Arr(uint32_t memory_): memory(memory_), HLL_num(memory * 1024 * 8 / (HLL_size + 8)),
+    HLL_raw(HLL_num * HLL_size / 8), reg_sums(HLL_num), hash_table(tab_size){
     cout << "The number of HLLs in layer 2: " << HLL_num << endl;
-    for(size_t i = 0;i <= HLL_raw.size();i++)
-        HLL_raw[i] = 0;
-    hash_table.resize(tab_size);
-    for(size_t i = 0;i < exp_table.size();i++)
-        exp_table[i] = pow(2.0, 0.0 - i);
-    if (register_num == 32)
-        alpha_m = 0.697; 
-    else if (register_num == 64)
-        alpha_m = 0.709;
-    else if (register_num >= 128)
-        alpha_m = 0.7213/(1 + 1.079/register_num);
+    for(size_t i = 0;i < HLL_raw.size();i++) HLL_raw[i] = 0;
+    for(size_t i = 0;i < reg_sums.size();i++) reg_sums[i] = 0;    
+    for(size_t i = 0;i < exp_table.size();i++) exp_table[i] = pow(2.0, 0.0 - i);
+    if (register_num == 32) alpha_m = 0.697; 
+    else if (register_num == 64) alpha_m = 0.709;
+    else if (register_num >= 128) alpha_m = 0.7213/(1 + 1.079/register_num);
     alpha_m_sqm = alpha_m * register_num * register_num; 
     LC_thresh = 2.5 * register_num; 
 }
@@ -202,21 +185,24 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     uint32_t bucket_pos = hashres32 & (register_num - 1); //use the last 4 bits to locate the bucket to update
     uint32_t rou_x = get_leading_zeros(hashres32) + 1;
     uint32_t update_pos;
-    if(hash_element[1] & 1)
+    if(hash_element[0] >> 63)
         update_pos = HLL_pos[0];
     else
         update_pos = HLL_pos[1];
     rou_x = rou_x <= 15 ? rou_x : 15;
-    uint32_t bucket_val = get_counter_val(update_pos,bucket_pos);
-    if(bucket_val < rou_x){
+    uint32_t bucket_val = get_counter_val(update_pos, bucket_pos);
+    if (bucket_val < rou_x){
         set_counter_val(update_pos,bucket_pos,rou_x);
-        reg_sums[update_pos] += (rou_x >> 2) - (bucket_val >> 2);
-        uint8_t min_reg_sum = min(reg_sums[HLL_pos[0]], reg_sums[HLL_pos[1]]);
-        insert_hashtab(flowid, min_reg_sum, hash_flowid[0]);
+        // reg_sums[update_pos] += (rou_x >> 2) - (bucket_val >> 2);
+        if (bucket_pos < 16){
+            reg_sums[update_pos] += rou_x - bucket_val;
+            uint8_t min_reg_sum = min(reg_sums[HLL_pos[0]], reg_sums[HLL_pos[1]]);
+            insert_hashtab(flowid, min_reg_sum, hash_flowid[0]);
+        }
     }
 }
 
-uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_) {
+int HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_) {
     array<uint32_t,2> HLL_pos;
     HLL_pos[0] = static_cast<uint32_t>(hash_flowid[1] >> 32) % HLL_num;
     HLL_pos[1] = static_cast<uint32_t>(hash_flowid[1]) % HLL_num;
@@ -231,11 +217,10 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
             V_++;
     }
     res_1 = alpha_m_sqm / sum_;
-    if(res_1 <= LC_thresh){
+    if(res_1 <= LC_thresh)
         if(V_ > 0)
             res_1 = register_num * log(register_num / (double)V_);
-    }
-
+    
     double res_2;
     sum_ = 0;
     V_ = 0;
@@ -246,26 +231,15 @@ uint32_t HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint
             V_++;
     }
     res_2 = alpha_m_sqm / sum_;
-    if(res_2 <= LC_thresh){
+    if(res_2 <= LC_thresh)
         if(V_ > 0)
             res_2 = register_num * log(register_num / (double)V_);
-    }
-    // if (res_1 > 3 * res_2 || res_2 > 3 * res_1){
-    //     cout<<"false positive: "<< flowid <<endl;
-    //     return 0;
-    // }
-        
     
     double min_spread = min(res_1,res_2);
-    uint32_t ans = round((min_spread - error_) * 2);
-    if (ans < 1)
-        return 1;
+    int ans = round((min_spread - error_) * 2);
+    if (ans < 0)
+        return 0;
     return ans;
-
-    // if(min_spread > error_)
-    //     return round(2 * (min_spread - error_));
-    // else
-    //     return 0;
 }
 
 void HLL_Arr::insert_hashtab(string flowid, uint8_t min_reg_sum, uint64_t hahsres64){
@@ -374,10 +348,10 @@ uint32_t Global_HLLs::get_number_flows(uint32_t layer){
 }
 
 uint32_t Global_HLLs::get_number_elements(uint32_t layer){
-    if(layer == LAYER1)
+    if(layer == LAYER1) 
         return get_cardinality(Layer1_elements);
-    else
-        return get_cardinality(Layer2_elements);
+    else 
+        return get_cardinality(Layer2_elements); 
 }
 
 uint32_t DCSketch::process_element(string flowid,string element) {
@@ -422,12 +396,12 @@ void DCSketch::get_global_info() {
 
 uint32_t DCSketch::query_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
-    uint32_t spread_layer1 = layer1.get_spread(flowid, hash_flowid, L1_mean_error);
-    uint32_t ret;
+    int spread_layer1 = layer1.get_spread(flowid, hash_flowid, L1_mean_error);  //
+    int ret;
     if(spread_layer1 != BITMAP_FULL_FLAG)
         ret = spread_layer1;
     else {
-        uint32_t spread_layer2 = layer2.get_spread(flowid, hash_flowid, L2_mean_error);
+        int spread_layer2 = layer2.get_spread(flowid, hash_flowid, L2_mean_error); //L2_mean_error
         ret = spread_layer2 + layer1.capacity - 2 * L1_mean_error;
     }
     return ret;

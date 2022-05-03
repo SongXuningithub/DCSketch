@@ -52,16 +52,17 @@ public:
     array<uint16_t,bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
     static const uint16_t FULL_PAT  = (1 << bitmap_size) - 1;
-    uint32_t capacity;
+    int capacity;
     static constexpr double thresh_ratio = 1.256 / 2;  //error removal
 #define BITMAP_FULL_FLAG -1
 
     Bitmap_Arr(uint32_t memory_);    
+    ~Bitmap_Arr(){cout<<"~Bitmap_Arr()"<<endl;}
     uint16_t get_bitmap(uint32_t bitmap_pos);
     int check_bitmap_full(uint16_t input_bitmap);
     bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
-    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
+    int get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
 };
 
 /*
@@ -69,7 +70,7 @@ Layer 2:    A sketch which consists of HyperLogLog estimators. In another word, 
             sketches is replaced with HyperLogLog estimator array in our Layer2 sketch. We use Layer2 to record
             Medium-sized flows.
 */
-
+static uint32_t TE_NUM = 0;
 class HLL_Arr{
 public:
     uint32_t memory; //kB
@@ -86,22 +87,23 @@ public:
     static constexpr double thresh_ratio = 2.103 / 2;
 
     HLL_Arr(uint32_t memory_);
+    ~HLL_Arr(){cout<<"~HLL_Arr()"<<endl;}
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
-    uint32_t get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
+    int get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
 
     class Table_Entry{
     public:
         string flowid;
         uint8_t min_reg_sum;
+        Table_Entry():flowid(""), min_reg_sum(0){}
+        ~Table_Entry(){}//cout<<"~Table_Entry()"<<endl;
     };
-    static const uint32_t table_mem = 20; //KB
+    static const uint32_t table_mem = 10; //KB
     static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);
     vector<Table_Entry> hash_table; 
     void insert_hashtab(string flowid, uint8_t selected_sum, uint64_t hahsres64);
-    
-    
 };
 
 class Global_HLLs{
@@ -139,14 +141,17 @@ Global_HLLs::Global_HLLs(){
 class DCSketch{
 public:
     Bitmap_Arr layer1;
-    
     HLL_Arr layer2;
-
     Global_HLLs global_hlls;
+    HLL_Arr* p_layer2;
+    
+
     int layer1_flows, layer2_flows, layer1_elements, layer2_elements;
     uint32_t L1_mean_error = 0, L2_mean_error = 0;
     array<uint32_t,2001> Error_RMV;
+
     DCSketch(uint32_t memory_size, double layer1_ratio);
+    ~DCSketch();
     uint32_t process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
@@ -155,8 +160,12 @@ public:
 };
 
 
+// DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
+// layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
 DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
-layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
+layer1(memory_size * 0.1 * layer1_ratio), layer2(1){
+    p_layer2 = new HLL_Arr(memory_size * (1 - layer1_ratio));
+
     string ifile_name = "../../DCSketch/support/error_removal.txt";
     ifstream ifile_hand;
     ifile_hand = ifstream(ifile_name);
@@ -171,6 +180,11 @@ layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
         ifile_hand >> error_val;
         Error_RMV[ratio] = error_val;
     }
+}
+
+DCSketch::~DCSketch(){
+    delete p_layer2;
+    cout<<"~DCSketch()"<<endl;
 }
 
 #endif
