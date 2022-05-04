@@ -25,21 +25,25 @@ int main()
     datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
     datasets["KAGGLE"] = {"Unicauca"};
+    datasets["FACEBOOK"] = {"page_page"};
+    for (size_t i = 8;i < 19;i++){
+        datasets["CAIDA_SUB"].push_back(to_string(i));
+    }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "MAWI";
-    string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
+    string dataset = "CAIDA_SUB";
+    // string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     // string filepath = "../../vHLL/output/" + dataset + "/";
-    // string filepath = "../../rerskt/output/" + dataset + "/";
+    string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
-    // vector<uint32_t> mems{1000};
+    // vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
-        uint32_t filenum = 1;
+        uint32_t filenum = datasets[dataset].size();//
         for (size_t i = 0;i < filenum;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
@@ -63,11 +67,14 @@ int main()
             double AAE = abs_error/num;
             ARE_sum += ARE;
             AAE_sum += AAE;
+            // cout<<datasets[dataset][i]<<endl;
+            cout<<ARE<<",";
             // cout<<"ARE: "<<ARE<<endl;
             // cout<<"AAE: "<<AAE<<endl;
         }
-        cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
-        cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
+        cout<<endl;
+        // cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
+        // cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
     }
 #endif
 

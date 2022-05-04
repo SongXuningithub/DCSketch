@@ -57,9 +57,8 @@ public:
 #define BITMAP_FULL_FLAG -1
 
     Bitmap_Arr(uint32_t memory_);    
-    ~Bitmap_Arr(){cout<<"~Bitmap_Arr()"<<endl;}
     uint16_t get_bitmap(uint32_t bitmap_pos);
-    int check_bitmap_full(uint16_t input_bitmap);
+    bool check_bitmap_full(uint16_t input_bitmap);
     bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     int get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
@@ -87,7 +86,6 @@ public:
     static constexpr double thresh_ratio = 2.103 / 2;
 
     HLL_Arr(uint32_t memory_);
-    ~HLL_Arr(){cout<<"~HLL_Arr()"<<endl;}
     uint32_t get_counter_val(uint32_t HLL_pos,uint32_t bucket_pos);
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
@@ -98,7 +96,6 @@ public:
         string flowid;
         uint8_t min_reg_sum;
         Table_Entry():flowid(""), min_reg_sum(0){}
-        ~Table_Entry(){}//cout<<"~Table_Entry()"<<endl;
     };
     static const uint32_t table_mem = 10; //KB
     static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);
@@ -143,15 +140,12 @@ public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
     Global_HLLs global_hlls;
-    HLL_Arr* p_layer2;
     
-
     int layer1_flows, layer2_flows, layer1_elements, layer2_elements;
     uint32_t L1_mean_error = 0, L2_mean_error = 0;
     array<uint32_t,2001> Error_RMV;
 
     DCSketch(uint32_t memory_size, double layer1_ratio);
-    ~DCSketch();
     uint32_t process_element(string flowid,string element);
     uint32_t query_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
@@ -160,11 +154,8 @@ public:
 };
 
 
-// DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
-// layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
 DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
-layer1(memory_size * 0.1 * layer1_ratio), layer2(1){
-    p_layer2 = new HLL_Arr(memory_size * (1 - layer1_ratio));
+layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
 
     string ifile_name = "../../DCSketch/support/error_removal.txt";
     ifstream ifile_hand;
@@ -181,10 +172,4 @@ layer1(memory_size * 0.1 * layer1_ratio), layer2(1){
         Error_RMV[ratio] = error_val;
     }
 }
-
-DCSketch::~DCSketch(){
-    delete p_layer2;
-    cout<<"~DCSketch()"<<endl;
-}
-
 #endif

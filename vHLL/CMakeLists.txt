@@ -31,4 +31,5 @@ target_link_libraries(
     PUBLIC
     ${PROJECT_NAME}
     mylibpcap
+    utility
 )

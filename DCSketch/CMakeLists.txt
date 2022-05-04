@@ -33,11 +33,11 @@ target_link_libraries(
     mylibpcap
 )
 
-add_executable(ParamSetting ${CMAKE_CURRENT_SOURCE_DIR}/src/ParameterSetting.cpp)
+# add_executable(ParamSetting ${CMAKE_CURRENT_SOURCE_DIR}/src/ParameterSetting.cpp)
 
-target_link_libraries(
-    ParamSetting
-    PRIVATE
-    DCSketch
-    mylibpcap
-)
+# target_link_libraries(
+#     ParamSetting
+#     PRIVATE
+#     DCSketch
+#     mylibpcap
+# )

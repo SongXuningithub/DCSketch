@@ -27,4 +27,5 @@ target_link_libraries(
     PUBLIC
     rerskt
     mylibpcap
+    utility
 )

@@ -51,18 +51,19 @@ uint32_t Bitmap::get_unitval(uint32_t bitpos){
 
 int Bitmap::get_spread(){
     uint32_t empty_bits = 0;
-    for(size_t i = 0;i < size();i++){
+    for(size_t i = 0;i < bitnum;i++){
         uint32_t tmp = get_unitval(i);
         if(tmp == 0)
             empty_bits++;
     }
     empty_bits = empty_bits > 0 ? empty_bits : 1;
-    double empty_frac = static_cast<double>(empty_bits) / size();
-    double card = size() * log(1 / empty_frac);
+    double empty_frac = static_cast<double>(empty_bits) / bitnum;
+    double card = bitnum * log(1 / empty_frac);
     return static_cast<int>(card);
 }
 
-void bSkt::process_packet(string flowid,string element){
+template<class Estimator>
+void bSkt<Estimator>::process_packet(string flowid, string element){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
     for(size_t i = 0;i < 4;i++){
@@ -107,7 +108,8 @@ void bSkt::process_packet(string flowid,string element){
     }
 }
 
-uint32_t bSkt::get_flow_spread(string flowid){
+template<class Estimator>
+uint32_t bSkt<Estimator>::get_flow_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     uint32_t spread = 1<<30;
     for(size_t i = 0;i < 4;i++){
@@ -119,3 +121,6 @@ uint32_t bSkt::get_flow_spread(string flowid){
     }
     return spread;
 }
+
+template class bSkt<HLL>;
+template class bSkt<Bitmap>;

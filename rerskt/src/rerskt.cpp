@@ -1,7 +1,6 @@
 #include "rerskt.h"
 
-uint8_t HLL::get_leading_zeros(uint32_t bitstr)
-{
+uint8_t HLL::get_leading_zeros(uint32_t bitstr){
     for(size_t i = 1;i <= 32;i++)
     {
         if( ((bitstr<<i)>>i) != bitstr )
@@ -10,10 +9,9 @@ uint8_t HLL::get_leading_zeros(uint32_t bitstr)
     return 32;
 }
 
-void HLL::record_element(string element,uint32_t reg_pos){
-    uint32_t hashres_32 = str_hash32(element,HASH_SEED_3);
-    uint8_t lz_num = get_leading_zeros(hashres_32) + 1;
-    HLL_registers[reg_pos] = max(lz_num , HLL_registers[reg_pos]);
+void HLL::record_element(uint32_t hash_elem, uint32_t unit_pos){
+    uint8_t lz_num = get_leading_zeros(hash_elem) + 1;
+    HLL_registers[unit_pos] = max(lz_num , HLL_registers[unit_pos]);
 }
 
 int HLL::get_spread(array<uint8_t,HLL::register_num> virtual_HLL){
@@ -50,7 +48,7 @@ void Bitmap::reset(){
         raw[i] = 0;
 }
 
-void Bitmap::record_element(uint32_t unit_pos){
+void Bitmap::record_element(uint32_t hash_elem, uint32_t unit_pos){
     uint32_t bitmap_pos = unit_pos / 8;
     raw[bitmap_pos] |= 1 << (7 - (unit_pos % 8));
 }
@@ -68,14 +66,14 @@ void Bitmap::set_unit(uint32_t pos,uint32_t val){
 
 int Bitmap::get_spread(){
     uint32_t empty_bits = 0;
-    for(size_t i = 0;i < size();i++){
+    for(size_t i = 0;i < bitnum;i++){
         uint32_t tmp = get_unitval(i);
         if(tmp == 0)
             empty_bits++;
     }
     empty_bits = empty_bits > 0 ? empty_bits : 1;
-    double empty_frac = static_cast<double>(empty_bits) / size();
-    double card = size() * log(1 / empty_frac);
+    double empty_frac = static_cast<double>(empty_bits) / bitnum;
+    double card = bitnum * log(1 / empty_frac);
     return static_cast<int>(card);
 }
 
@@ -88,27 +86,28 @@ uint32_t getbit(array<uint64_t,2> hashres128,uint32_t pos){
     return retbit;
 }
 
+template<class Estimator>
+RerSkt<Estimator>::RerSkt(uint32_t memory_): memory(memory_), table_size(memory * 1024 * 8 / 2 /Estimator::size), 
+    table1(table_size), table2(table_size) {
+    for(size_t i = 0; i < table1.size();i++){
+        table1[i].reset();
+        table2[i].reset();
+    }
+}
 
-void RerSkt::process_flow(string flowid,string element){
-    uint32_t hashres_32 = str_hash32(flowid,HASH_SEED_1);
-    uint32_t Estimator_pos = hashres_32 % table_size;
-    hashres_32 = str_hash32(element,HASH_SEED_2);
-    uint32_t unit_index = hashres_32 % table1[0].size();
+template<class Estimator>
+void RerSkt<Estimator>::process_packet(string flowid, string element){
+    uint32_t flow_hash = str_hash32(flowid,HASH_SEED_1);
+    uint32_t Estimator_pos = flow_hash % table_size;
+    uint32_t elem_hash = str_hash32(element,HASH_SEED_2);
+    uint32_t unit_index = elem_hash % table1[0].get_unit_num();
     uint32_t hash_batch = unit_index / 128;
     array<uint64_t,2> hashres_128 = str_hash128(flowid + to_string(hash_batch), HASH_SEED_1);
-    uint32_t table_num = getbit(hashres_128,unit_index % 128);
-#ifdef HLL_MODE
+    uint32_t table_num = getbit(hashres_128, unit_index % 128);
     if(table_num == 0) 
-        table1[Estimator_pos].record_element(element,unit_index);
+        table1[Estimator_pos].record_element(elem_hash, unit_index);
     else
-        table2[Estimator_pos].record_element(element,unit_index);
-#endif
-#ifdef Bitmap_MODE
-    if(table_num == 0)
-        table1[Estimator_pos].record_element(unit_index);
-    else
-        table2[Estimator_pos].record_element(unit_index);
-#endif
+        table2[Estimator_pos].record_element(elem_hash, unit_index);
 
     //detect superspreaders
     if(DETECT_SUPERSPREADER == false)
@@ -142,19 +141,15 @@ void RerSkt::process_flow(string flowid,string element){
     }
 }
 
-int RerSkt::get_flow_spread(string flowid){
-    uint32_t hashres_32 = str_hash32(flowid,HASH_SEED_1);
+template<class Estimator>
+int RerSkt<Estimator>::get_flow_spread(string flowid){
+    uint32_t hashres_32 = str_hash32(flowid, HASH_SEED_1);
     uint32_t Estimator_pos = hashres_32 % table_size;
-#ifdef HLL_MODE
-    HLL primary_est;
-    HLL complement_est;
-#endif
-#ifdef Bitmap_MODE
-    Bitmap primary_est;
-    Bitmap complement_est;
-#endif
+    Estimator primary_est;
+    Estimator complement_est;
+
     array<uint64_t,2> hashres_128;
-    for(size_t i = 0;i < primary_est.size();i++){
+    for(size_t i = 0;i < primary_est.get_unit_num();i++){
         uint32_t modval = i % 128;
         if(modval == 0)
             hashres_128 = str_hash128(flowid + to_string(i / 128),HASH_SEED_1);
@@ -172,3 +167,6 @@ int RerSkt::get_flow_spread(string flowid){
     int flow_spread = pri_spread - comp_spread;
     return flow_spread;
 }
+
+template class RerSkt<Bitmap>;
+template class RerSkt<HLL>;

@@ -13,7 +13,7 @@ namespace metadata{
     int shift_;
 };
 
-Bitmap_Arr::Bitmap_Arr(uint32_t memory_): memory(memory_), bitmap_num(memory * 1024 * 8 / bitmap_size / 2), raw(memory*1024*8/32 / 2) {
+Bitmap_Arr::Bitmap_Arr(uint32_t memory_): memory(memory_), bitmap_num(memory * 1024 * 8 / bitmap_size), raw(memory*1024*8/32) {
     for(size_t i = 0;i < raw.size();i++) raw[i] = 0;
     for(size_t i = 0;i < bitmap_size;i++) patterns[i] = 1 << (bitmap_size - i - 1);
     
@@ -46,21 +46,22 @@ uint16_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
 uint32_t zero_pos;
 bool has_zero = false;
 
-int Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
+bool Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
     if( input_bitmap == FULL_PAT ){
-        return bitmap_size;  
+        return true;  
     }
     has_zero = false;
     for(size_t i=0;i<bitmap_size;i++){
         if( (patterns[i] & input_bitmap) == 0){
             if(has_zero)
-                return -1;
+                return false;
             else
                 has_zero = true;
             zero_pos = i;
         }   
     }
-    return zero_pos;
+    set_bit(zero_pos);  //set the last zero bit to 1
+    return true;
 }
 
 bool Bitmap_Arr::set_bit(uint32_t bit_pos){
@@ -80,37 +81,21 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
     L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
     uint32_t hashres32 = static_cast<uint32_t>(hash_element[0] >> 32);
-    uint32_t update_pos = L1_pos[(hashres32>>16) % 2];
+    bool tmpidx = (hashres32 >> 16) & 1;
+    uint32_t update_pos = L1_pos[tmpidx];  //(hashres32>>16) % 2
     uint16_t tmp_bitmap = get_bitmap(update_pos);
-    bool all_full = true;
-    int empty_pos = check_bitmap_full(tmp_bitmap);
-    if(empty_pos == -1){
+    if(check_bitmap_full(tmp_bitmap) == false){
         uint32_t update_bit = static_cast<uint16_t>(hashres32) % bitmap_size;
         set_bit(update_bit);
-        all_full = false;
-    } else {   //the hashed bitmap(linear-counting) has been full, so we check the other one.
-#ifdef DEBUG_LAYER12
-        cout<<"ONE bitmap_state: "<<std::bitset<6>(bitmap_state)<<endl;
-#endif
-        if(empty_pos != bitmap_size)
-            set_bit(empty_pos);   //set the last zero bit to 1
-        for(size_t i = 0;i < 2;i++){
-            if(L1_pos[i] == update_pos)
-                continue;
-            tmp_bitmap = get_bitmap(L1_pos[i]);
-#ifdef DEBUG_LAYER12
-            cout<<"ANOTHER bitmap_state: "<<std::bitset<6>(bitmap_state)<<endl;
-#endif
-            empty_pos = check_bitmap_full(tmp_bitmap);
-            if(empty_pos == -1){
-                all_full = false;
-                break;
-            }
-             if(empty_pos != bitmap_size)
-                set_bit(empty_pos);   //set the last zero bit to 1
-        }
+        return false;
+    } else {   //the hashed bitmap(linear-counting) has been full, so we check the other one.  
+        uint32_t another_pos = L1_pos[!tmpidx];
+        tmp_bitmap = get_bitmap(another_pos);
+        if(check_bitmap_full(tmp_bitmap) == true)
+            return true;
+        else
+            return false;
     }
-    return all_full;
 }
 
 int Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_){
@@ -137,11 +122,6 @@ int Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32
     if (ans < 1)
         return 1;
     return ans;
-
-    // if (min_spread > error_)
-    //     return round((min_spread - error_) * 2);
-    // else
-    //     return 1;
 }
 
 HLL_Arr::HLL_Arr(uint32_t memory_): memory(memory_), HLL_num(memory * 1024 * 8 / (HLL_size + 8)),
@@ -396,12 +376,12 @@ void DCSketch::get_global_info() {
 
 uint32_t DCSketch::query_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
-    int spread_layer1 = layer1.get_spread(flowid, hash_flowid, L1_mean_error);  //
+    int spread_layer1 = layer1.get_spread(flowid, hash_flowid, 0);  //
     int ret;
     if(spread_layer1 != BITMAP_FULL_FLAG)
         ret = spread_layer1;
     else {
-        int spread_layer2 = layer2.get_spread(flowid, hash_flowid, L2_mean_error); //L2_mean_error
+        int spread_layer2 = layer2.get_spread(flowid, hash_flowid, 0); //L2_mean_error
         ret = spread_layer2 + layer1.capacity - 2 * L1_mean_error;
     }
     return ret;

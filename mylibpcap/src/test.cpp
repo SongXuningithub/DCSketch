@@ -5,7 +5,7 @@ int main()
     // string dataset = "MAWI";
     string dataset = "KAGGLE";
     string filename = "Dataset-Unicauca";
-    PCAP_SESSION session(dataset,filename,CSV_FILE);
+    PCAP_SESSION session("/home/xun/dataset/", dataset, filename, CSV_FILE);
     IP_PACKET cur_packet;
     //int status = session.get_packet(cur_packet);
     while(int status = session.get_packet(cur_packet))

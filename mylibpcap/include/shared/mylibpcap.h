@@ -85,6 +85,7 @@ struct my_ip{
 class IP_PACKET{
 #define PCAP_FILE 1
 #define CSV_FILE 2
+
 public:
     uint8_t srcdot[4];
     uint8_t dstdot[4];
@@ -104,7 +105,6 @@ public:
 class PCAP_SESSION{
 
 private:
-    string data_path = "/home/xun/dataset/";
 	int file_type;
 
     //variables for pcap session
@@ -121,16 +121,12 @@ private:
     bool eof_flag = false;
 
 public:
-	PCAP_SESSION(string dataset,string filename,int file_type_)
-	{
+	PCAP_SESSION(string data_path, string dataset, string filename, int file_type_){
 		file_type = file_type_;
-		if(file_type == PCAP_FILE)
-		{
+		if(file_type == PCAP_FILE) {
 			string pcap_file = data_path + dataset + "/" + filename + ".pcap";
 			pcap_session = pcap_open_offline(pcap_file.c_str(), ebuf);
-		}
-		else if(file_type == CSV_FILE)
-		{
+		} else if(file_type == CSV_FILE) {
 			string csv_file_name = data_path + dataset + "/" + filename + ".csv";
 			csv_file.open(csv_file_name);
 			string head_line;

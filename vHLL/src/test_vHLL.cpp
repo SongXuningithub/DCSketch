@@ -1,5 +1,6 @@
 #include "vHLL.h"
 #include "mylibpcap.h"
+#include "util.h"
 #include <iostream>
 #include <set>
 #include <memory>
@@ -11,47 +12,32 @@
 using std::unique_ptr;
 
 void write_res(string dataset,string filename,vHLL& virhll,uint32_t tmpmem);
-bool per_src_flow = true;
+
 int main()
 {
-    unordered_map<string,vector<string>> datasets;
-    datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
-    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
-    datasets["KAGGLE"] = {"Unicauca"};
-
-    string dataset = "CAIDA";
-    if(dataset == "CAIDA"){
-        per_src_flow = false;
-        cout<<"per_src_flow = false"<<endl;
-    }
-    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    string dataset = "CAIDA_SUB";
+    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        for(size_t i = 0;i < datasets[dataset].size();i++){   
-            string filename = datasets[dataset][i];
-            PCAP_SESSION session(dataset,filename,PCAP_FILE);
-            IP_PACKET cur_packet;
-            string srcip,dstip;
+        uint32_t filenum = 11;
+        for(size_t i = 0;i < filenum;i++){   
+            FILE_HANDLER filehandler(dataset, i);
+            string flowID, elemID;
             vHLL virhll(tmpmem);
-            
             clock_t startTime,endTime;
             startTime = clock();
-            while(int status = session.get_packet(cur_packet)){
-                srcip = cur_packet.get_srcip();
-                dstip = cur_packet.get_dstip();
-                if(per_src_flow)
-                    virhll.process_packet(srcip,dstip);
-                else
-                    virhll.process_packet(dstip,srcip);
-                // if(session.proc_num()%2000000 == 0){
-                //     // cout<<"process packet "<<session.proc_num()<<endl;
-                //     break;
-                // }
+            while(int status = filehandler.get_item(flowID, elemID)){
+                virhll.process_packet(flowID, elemID);
+                if(filehandler.proc_num()%1000000 == 0){
+                    // cout<<"process packet "<<filehandler.proc_num()<<endl;
+                    break;
+                }
             }
             endTime = clock();
             // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
             cout << "n: " << virhll.get_spread(virhll.global_HLL)<<endl; 
-            write_res(dataset,filename,virhll,tmpmem);
+            write_res(dataset, filehandler.get_filename(), virhll, tmpmem);
         }
     }
     

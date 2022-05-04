@@ -1,97 +1,82 @@
 #include "mylibpcap.h"
 #include<cstring>
 #include<sstream>
-void IP_PACKET::setsrc(uint32_t val)
-{
+
+void IP_PACKET::setsrc(uint32_t val) {
     this->srcdot[0] = val;
     this->srcdot[1] = val>>8;
     this->srcdot[2] = val>>16;
     this->srcdot[3] = val>>24;
 }
 
-void IP_PACKET::setdst(uint32_t val)
-{
+void IP_PACKET::setdst(uint32_t val) {
     this->dstdot[0] = val;
     this->dstdot[1] = val>>8;
     this->dstdot[2] = val>>16;
     this->dstdot[3] = val>>24;
 }
 
-void IP_PACKET::setsrc(string str)
-{
+void IP_PACKET::setsrc(string str) {
     istringstream readstr(str);
     string tmp;
-    for(size_t i = 0;i < 4;i++)
-    {
+    for(size_t i = 0;i < 4;i++) {
         getline(readstr,tmp,'.');
         this->srcdot[i] = stoi(tmp);
     }
 }
 
-void IP_PACKET::setdst(string str)
-{
+void IP_PACKET::setdst(string str) {
     istringstream readstr(str);
     string tmp;
-    for(size_t i = 0;i < 4;i++)
-    {
+    for(size_t i = 0;i < 4;i++) {
         getline(readstr,tmp,'.');
         this->dstdot[i] = stoi(tmp);
     }
 }
 
-void IP_PACKET::show_ip()
-{
+void IP_PACKET::show_ip() {
     cout<<"src ip: "<<unsigned(srcdot[0]) <<"."<<unsigned(srcdot[1]) <<"."<<
     unsigned(srcdot[2]) <<"."<<unsigned(srcdot[3])
     <<"  dst ip: "<<unsigned(dstdot[0]) <<"."<<unsigned(dstdot[1]) <<"."<<
     unsigned(dstdot[2]) <<"."<<unsigned(dstdot[3]) <<endl;
 }
 
-string IP_PACKET::get_ipstr()
-{
+string IP_PACKET::get_ipstr() {
     string ret = "";
     string tmp;
-    for(int i=0;i<4;i++)
-    {
+    for(int i=0;i<4;i++) {
         tmp = to_string(srcdot[i]);
         ret += (string(3 - tmp.length(), '0') + tmp);
     }
-    for(int i=0;i<4;i++)
-    {
+    for(int i=0;i<4;i++) {
         tmp = to_string(dstdot[i]);
         ret += (string(3 - tmp.length(), '0') + tmp);
     }
     return ret;
 }
 
-string IP_PACKET::get_srcip()
-{
+string IP_PACKET::get_srcip() {
     string ret = "";
     string tmp;
-    for(int i=0;i<4;i++)
-    {
+    for(int i=0;i<4;i++) {
         tmp = to_string(srcdot[i]);
         ret += (string(3 - tmp.length(), '0') + tmp);
     }
     return ret;
 }
 
-string IP_PACKET::get_dstip()
-{
+string IP_PACKET::get_dstip() {
     string ret = "";
     string tmp;
-    for(int i=0;i<4;i++)
-    {
+    for(int i=0;i<4;i++) {
         tmp = to_string(dstdot[i]);
         ret += (string(3 - tmp.length(), '0') + tmp);
     }
     return ret;
 }
 
-int PCAP_SESSION::get_packet(IP_PACKET& ret_pk)
-{
-    if(file_type == PCAP_FILE)
-    {
+int PCAP_SESSION::get_packet(IP_PACKET& ret_pk) {
+    if(file_type == PCAP_FILE){
         const u_char *pktStr;// = pcap_next(pcap_session, &pkthdr);
         int status = pcap_next_ex(pcap_session,&pkthdr,&pktStr);
     // cout<<"status: "<<status<<endl;
@@ -117,13 +102,10 @@ int PCAP_SESSION::get_packet(IP_PACKET& ret_pk)
         pkt_num++;
         ret_pk.setsrc(ip_pkt->ip_src.s_addr);
         ret_pk.setdst(ip_pkt->ip_dst.s_addr);
-    }
-    else if(file_type == CSV_FILE)
-    {
+    } else if (file_type == CSV_FILE) {
         string linedata;
         getline(csv_file,linedata);
-        if(csv_file.eof() || linedata=="")
-        {
+        if(csv_file.eof() || linedata==""){
             printf("Pcap file parse over !\n");
             eof_flag = true;  
             cout<<" pkt num:"<<pkt_num<<endl;
@@ -142,10 +124,6 @@ int PCAP_SESSION::get_packet(IP_PACKET& ret_pk)
        
         ret_pk.setsrc(sourceip);
         ret_pk.setdst(dstip);
-        
-        // cout<<"sourceip: "<<sourceip<<"  dstip: "<<dstip<<endl;
-        // ret_pk.show_ip();
-    }
-    
+    } 
     return 1;
 }

@@ -20,6 +20,7 @@ class HLL{
 public:
     static const uint32_t register_num = 128;
     static const uint32_t register_size = 5;
+    static const uint32_t size = register_num * register_size;
     static const uint32_t HLL_size = register_num * register_size;
     static constexpr double alpha_m = 0.7213/(1+1.079/128); 
     array<uint8_t,register_num> HLL_registers{};
@@ -30,13 +31,14 @@ public:
 
 class Bitmap{
 public:
-    static const uint32_t bitnum = 500;
+    static const uint32_t bitnum = 5000;
+    static const uint32_t size = bitnum;
     array<uint8_t,bitnum/8> raw{};
     void record_element(uint32_t hashres);
     uint32_t get_unitval(uint32_t bitpos);
     int get_spread();
     void reset();
-    uint32_t size(){ return bitnum; }
+    // uint32_t size(){ return bitnum; }
     Bitmap(){ reset(); }
 };
 
@@ -47,42 +49,42 @@ public:
     FLOW(){flow_spread = 0;flowid="";}
 };
 
-struct MinHeapCmp
-{
-    inline bool operator()(const FLOW &x, const FLOW &y)
-    {
+struct MinHeapCmp{
+    inline bool operator()(const FLOW &x, const FLOW &y){
         return x.flow_spread > y.flow_spread;
     }
 };
 
+template<class Estimator>
 class bSkt{
 public:
-// #define HLL_MODE 1
-#define Bitmap_MODE 1
     bool DETECT_SUPERSPREADER = false;
-    static const uint32_t memory = 1000;  //kB
+    uint32_t memory;  //kB
+    uint32_t table_size = memory * 1024 * 8 / 4 /Estimator::size;
+    vector<vector<Estimator>> tables;
 
-#ifdef HLL_MODE
-    static const uint32_t table_size = memory * 1024 * 8 / 4 /HLL::HLL_size;
-    array<array<HLL,table_size>,4> tables;
-#endif
-#ifdef Bitmap_MODE 
-    static const uint32_t table_size = memory * 1024 * 8 / 4 /Bitmap::bitnum;
-    array<array<Bitmap,table_size>,4> tables;
-#endif
     void process_packet(string flowid,string element);
     void report_superspreaders(vector<IdSpread>& superspreaders);
+    bSkt(uint32_t memory_);
     uint32_t get_flow_spread(string flowid);
     uint32_t heap_size = 400;
     set<string> inserted;
     vector<FLOW> heap;
 };
 
-void bSkt::report_superspreaders(vector<IdSpread>& superspreaders)
-{
+template<class Estimator>
+bSkt<Estimator>::bSkt(uint32_t memory_):memory(memory_), table_size(memory * 1024 * 8 / 4 /Estimator::size), tables(4){
+        tables[0].resize(table_size);
+        tables[1].resize(table_size);
+        tables[2].resize(table_size);
+        tables[3].resize(table_size);
+        cout << "tables[0].size(): " << tables[0].size() << endl;
+}
+
+template<class Estimator>
+void bSkt<Estimator>::report_superspreaders(vector<IdSpread>& superspreaders){
     superspreaders.clear();
-    for(size_t i = 0;i < heap.size();i++)
-    {
+    for(size_t i = 0;i < heap.size();i++){
         superspreaders.push_back(IdSpread(heap[i].flowid, heap[i].flow_spread));
     }
     sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
