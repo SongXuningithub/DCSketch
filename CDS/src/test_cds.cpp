@@ -7,56 +7,44 @@
 // #define DETECT_SUPERCHANGES 1
 
 
-void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem);
+void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, double cmratio);
 void write_sc(string dataset, vector<IdSpread>& superchanges, uint32_t tmpmem);
-bool per_src_flow = true;
+
 int main()
 {
-    unordered_map<string,vector<string>> datasets;
-    datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
-    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
-    datasets["KAGGLE"] = {"Unicauca"};
-
     string dataset = "MAWI";
-    if(dataset == "CAIDA"){
-        per_src_flow = false;
-        cout<<"per_src_flow = false"<<endl;
-    }
 
 #ifdef DETECT_SUPERSPREADERS
-    // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{1000};
-    for(auto tmpmem : mems){
-        cout << "memory: " << tmpmem << endl;
-        CDS cds(tmpmem);
-        string filename = datasets[dataset][0];
-        PCAP_SESSION session(dataset,filename, PCAP_FILE);
-        IP_PACKET cur_packet;
-        string srcip,dstip;
-        clock_t startTime,endTime;
-        startTime = clock();
-        while(int status = session.get_packet(cur_packet)){
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if(per_src_flow)
-                cds.update(srcip,dstip);
-            else
-                cds.update(dstip,srcip);
-        }
-        endTime = clock();
-        cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    uint32_t mem = 30000;
+    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04, 0.05}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    for(auto cmratio : cm_ratios){
+        cout << "CarMon ratio: " << cmratio << endl;
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+            CDS* cds = new CDS(mem, cmratio);
+            FILE_HANDLER filehandler(dataset, i);
+            string flowID, elemID;
+            clock_t startTime,endTime;
+            startTime = clock();
+            while(int status = filehandler.get_item(flowID, elemID)){
+                cds->update(flowID, elemID);
+                // if(filehandler.proc_num() == 1e6)
+                //     break;
+            }
+            endTime = clock();
+            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 
-        vector<IdSpread> superspreaders;
-        startTime = clock();
-        cds.DetectSuperSpreaders(superspreaders);
-        endTime = clock();
-        cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-        // write_ss(dataset, filename, superspreaders,tmpmem);
+            vector<IdSpread> superspreaders;
+            startTime = clock();
+            cds->DetectSuperSpreaders(superspreaders);
+            endTime = clock();
+            cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            write_ss(dataset, filehandler.get_filename(), superspreaders, mem, cmratio);
+        }
     }
     
     return 0;
 #endif
-
 
 #ifdef DETECT_SUPERCHANGES
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
@@ -111,12 +99,12 @@ int main()
 #endif
 }
 
-void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem){
+void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, double cmratio){
     //string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../CDS/output/SuperSpreaders/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + to_string(cmratio).substr(0,4) + "_" + filename + ".txt");
     if(!ofile_hand){
         cout<<"fail to open files."<<endl;
         return;

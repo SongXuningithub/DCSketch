@@ -1,7 +1,9 @@
 #include"cds.h"
 
-CDS::CDS(uint32_t mem){ //kB
-    v = mem * 1024 * 8 / (mi[0] + mi[1] + mi[2]);
+CDS::CDS(uint32_t mem, double cmratio): CarMon_bm(mem * cmratio){ //kB
+    if(cmratio == 0)
+        use_CarMon = false;
+    v = mem * (1 - cmratio) * 1024 * 8 / (mi[0] + mi[1] + mi[2]);
     data.resize(mi[0] + mi[1] + mi[2]);
     for(size_t i = 0;i < data.size();i++)
         data[i].resize(v/8 + 1);
@@ -14,6 +16,13 @@ uint32_t CDS::hash_funs(uint32_t i, uint32_t x){
 }
 
 void CDS::update(string flowid, string element){
+    if (use_CarMon) {
+        array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+        array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);
+        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+        if (full_flag == false)
+            return;
+    }
     uint32_t st = IPstrtoUint32(flowid);
     uint32_t dt = IPstrtoUint32(element);
     uint32_t base = 0;
@@ -133,9 +142,19 @@ void CDS::DetectSuperSpreaders(vector<IdSpread>& superspreaders){
     for (auto iter : candidates){
         uint32_t tmp_card = get_cardinality(iter);
         string tmp_flow = Uint32toIPstr(iter);
-        if(tmp_card >= ss_thresh)
-            superspreaders.push_back(IdSpread(tmp_flow, tmp_card));
+        if(tmp_card >= ss_thresh){
+            if (use_CarMon){
+                array<uint64_t,2> hash_flowid = str_hash128(tmp_flow, HASH_SEED_1);
+                bool full_flag = CarMon_bm.check_flow_full(hash_flowid);
+                if (full_flag == true){
+                    superspreaders.push_back(IdSpread(tmp_flow, tmp_card));
+                }
+            } else {
+                superspreaders.push_back(IdSpread(tmp_flow, tmp_card));
+            }
+        }
     }
+    sort(superspreaders.begin(), superspreaders.end(), IdSpreadComp);
 }
 
 void CDS::DetectSuperChanges(CDS& prevCDS, vector<IdSpread>& superchanges){

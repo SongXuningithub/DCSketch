@@ -3,75 +3,63 @@
 #include <ctime>
 #include <unordered_map>
 
-void write_res(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem);
-bool per_src_flow = true;
+void write_res(string dataset, string filename, vector<IdSpread>* superspreaders, uint32_t tmpmem, double cmratio);
+
 int main()
 {
-    unordered_map<string,vector<string>> datasets;
-    datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
-    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
-    datasets["KAGGLE"] = {"Unicauca"};
-    
-    string dataset = "KAGGLE";
-    if(dataset == "CAIDA"){
-        per_src_flow = false;
-        cout<<"per_src_flow = false"<<endl;
-    }
-
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
-    for(auto tmpmem : mems){
-        cout << "memory: " << tmpmem << endl;
-        Vector_Bloom_Filter vbf(tmpmem);
- 
-        string filename = datasets[dataset][0];
-        PCAP_SESSION session(dataset,filename,CSV_FILE);
-        IP_PACKET cur_packet;
-        string srcip,dstip;
-        clock_t startTime,endTime;
-        startTime = clock();
-        while(int status = session.get_packet(cur_packet)){
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if(per_src_flow){
+    string dataset = "MAWI";
+    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    // vector<uint32_t> mems{500, 1000, 1500, 2000};
+    // vector<uint32_t> mems{2000};
+    uint32_t mem = 60000;
+    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    for(auto cmratio : cm_ratios){
+        cout << "CarMon ratio: " << cmratio << endl;
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+            Vector_Bloom_Filter* vbf = new Vector_Bloom_Filter(mem, cmratio);
+            FILE_HANDLER filehandler(dataset, i);
+            string flowID, elemID;
+            clock_t startTime,endTime;
+            startTime = clock();
+            while(int status = filehandler.get_item(flowID, elemID)){
                 array<uint8_t,4> srcip_tuple;
-                for(size_t i = 0;i < 4;i++)
-                    srcip_tuple[i] = cur_packet.srcdot[i];
-                vbf.process_packet(srcip,srcip_tuple,dstip);
-            } else {
-                array<uint8_t,4> dstip_tuple;
-                for(size_t i = 0;i < 4;i++)
-                    dstip_tuple[i] = cur_packet.dstdot[i];
-                vbf.process_packet(dstip,dstip_tuple,srcip);
+                for(size_t i = 0;i < 4;i++){
+                    srcip_tuple[i] = atoi(flowID.substr(i*3,3).c_str());
+                }            
+                vbf->process_packet(flowID,srcip_tuple,elemID);
+
+                // if (filehandler.proc_num() == 10000000)
+                //     break;
             }
+            endTime = clock();
+            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+
+            uint32_t threshold = 600;
+            vbf->calc_Z(threshold);
+            vector<IdSpread>* superspreaders = new vector<IdSpread>;
+            
+            startTime = clock();
+            vbf->Detect_Superpoint(superspreaders);
+            endTime = clock();
+            cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            write_res(dataset, filehandler.get_filename(), superspreaders, mem, cmratio);
         }
-        endTime = clock();
-        cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-
-        uint32_t threshold = 600;
-        vbf.calc_Z(threshold);
-        vector<IdSpread> superspreaders;
-        
-        startTime = clock();
-        vbf.Detect_Superpoint(superspreaders);
-        endTime = clock();
-        cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-        write_res(dataset, filename, superspreaders,tmpmem);
     }
-
     return 0;
 }
 
-void write_res(string dataset,string filename,vector<IdSpread>& superspreaders,uint32_t tmpmem){
+void write_res(string dataset, string filename, vector<IdSpread>* superspreaders, uint32_t tmpmem, double cmratio){
     string ofile_path = "../../Vector_BF/output/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + to_string(cmratio).substr(0,4) + "_" + filename + ".txt");
     if(!ofile_hand){
         cout<<"fail to open files."<<endl;
         return;
     }
     bool first_line = true;
-    for(auto item : superspreaders){
+    for(auto item : *superspreaders){
         if(first_line)
             first_line = false;
         else

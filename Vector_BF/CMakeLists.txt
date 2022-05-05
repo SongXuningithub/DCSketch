@@ -18,6 +18,7 @@ target_link_libraries(
     PUBLIC
     hashfunc
     utility
+    DCSketch
 )
 
 add_executable(

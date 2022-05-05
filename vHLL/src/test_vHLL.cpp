@@ -15,12 +15,12 @@ void write_res(string dataset,string filename,vHLL& virhll,uint32_t tmpmem);
 
 int main()
 {
-    string dataset = "CAIDA_SUB";
-    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    vector<uint32_t> mems{2000};
+    string dataset = "FACEBOOK";
+    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    // vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        uint32_t filenum = 11;
+        uint32_t filenum = 1;
         for(size_t i = 0;i < filenum;i++){   
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;

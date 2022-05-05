@@ -11,16 +11,16 @@
 #include "util.h"
 using namespace std;
 
-#define TEST_PERFLOW_ACC 1
+// #define TEST_PERFLOW_ACC 1
 // #define TEST_SUPERSPREADER_ACC 1
+#define TEST_CARMON_PLUS_PRIOR
 // #define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_recall(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_error(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 
-int main()
-{
+int main() {
     unordered_map<string,vector<string>> datasets;
     datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
@@ -31,15 +31,15 @@ int main()
     }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "CAIDA_SUB";
+    string dataset = "FACEBOOK";
     // string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
-    // string filepath = "../../vHLL/output/" + dataset + "/";
-    string filepath = "../../rerskt/output/" + dataset + "/";
+    string filepath = "../../vHLL/output/" + dataset + "/";
+    // string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
-    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{2000};
+    // vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
@@ -68,14 +68,14 @@ int main()
             ARE_sum += ARE;
             AAE_sum += AAE;
             // cout<<datasets[dataset][i]<<endl;
-            cout<<ARE<<",";
+            cout << ARE << " ";
             // cout<<"ARE: "<<ARE<<endl;
             // cout<<"AAE: "<<AAE<<endl;
         }
-        cout<<endl;
         // cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
         // cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
     }
+    cout<<endl;
 #endif
 
 #ifdef TEST_SUPERSPREADER_ACC
@@ -199,6 +199,70 @@ int main()
         }
     }
 #endif
+
+#ifdef TEST_CARMON_PLUS_PRIOR
+    unordered_map<string,vector<uint32_t>> thresholds;
+    thresholds["MAWI"] = {20000, 3000, 1300};
+    thresholds["CAIDA"] = {8000, 3400, 1800};
+    thresholds["KAGGLE"] = {1000};
+
+    string dataset = "CAIDA";
+
+    uint32_t mem(50000);
+    vector<double> cm_ratios{0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+
+    for(uint32_t threshold : thresholds[dataset]){
+        cout << "threshold: " << threshold << endl;
+        for(auto cm_ratio : cm_ratios){
+            cout << "cm_ratio: " << cm_ratio << "   ";
+            string filename = datasets[dataset][0];
+            ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
+
+            string esti_filename = to_string(mem)+ "_" + to_string(cm_ratio).substr(0,4) + "_" + filename;
+            // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
+            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
+            ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
+            // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
+            // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + filename + ".txt");
+
+            if(!ifile_truth || !ifile_esti){
+                cout<<"unable to open file"<<endl;
+                return 0;
+            }
+            vector<IdSpread> superspreaders;
+            while(!ifile_truth.eof()){
+                string flowid;
+                uint32_t true_spread;
+                ifile_truth >> flowid >> true_spread;
+                if (true_spread >= threshold)
+                    superspreaders.push_back(IdSpread(flowid,true_spread));
+            }
+            vector<IdSpread> superspreaders_esti;
+            double tuned_threshold = threshold;// * (1 - 0.4 * 0.1856);
+            while(!ifile_esti.eof()){
+                string flowid;
+                uint32_t esti_spread;
+                ifile_esti >> flowid >> esti_spread;
+                if(esti_spread >= tuned_threshold)
+                    superspreaders_esti.push_back(IdSpread(flowid,esti_spread));
+                else
+                    break;
+            }
+            ifile_esti.close();
+            ifile_truth.close();
+            double prec = get_precision(superspreaders_esti, superspreaders);
+            double recall = get_recall(superspreaders_esti, superspreaders);
+            double F1_Score;
+            if(recall == 0 && prec == 0)
+                F1_Score = -1;
+            else
+                F1_Score = 2 * prec * recall / (prec + recall);
+            double rel_error = get_error(superspreaders_esti, superspreaders);
+            cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+        }
+    }
+#endif
+
     return 0;
 }
 

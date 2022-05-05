@@ -59,6 +59,7 @@ public:
     Bitmap_Arr(uint32_t memory_);    
     uint16_t get_bitmap(uint32_t bitmap_pos);
     bool check_bitmap_full(uint16_t input_bitmap);
+    bool check_flow_full(array<uint64_t,2>& hash_flowid);
     bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     int get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);

@@ -47,9 +47,8 @@ uint32_t zero_pos;
 bool has_zero = false;
 
 bool Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
-    if( input_bitmap == FULL_PAT ){
+    if( input_bitmap == FULL_PAT )
         return true;  
-    }
     has_zero = false;
     for(size_t i=0;i<bitmap_size;i++){
         if( (patterns[i] & input_bitmap) == 0){
@@ -62,6 +61,22 @@ bool Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
     }
     set_bit(zero_pos);  //set the last zero bit to 1
     return true;
+}
+
+bool Bitmap_Arr::check_flow_full(array<uint64_t,2>& hash_flowid){
+    array<uint32_t,2> L1_pos;
+    L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
+    L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
+    uint16_t tmp_bitmap = get_bitmap(L1_pos[0]);
+    if(check_bitmap_full(tmp_bitmap) == false){
+        return false;
+    } else {   //the hashed bitmap(linear-counting) has been full, so we check the other one.  
+        tmp_bitmap = get_bitmap(L1_pos[1]);
+        if(check_bitmap_full(tmp_bitmap) == true)
+            return true;
+        else
+            return false;
+    }
 }
 
 bool Bitmap_Arr::set_bit(uint32_t bit_pos){
