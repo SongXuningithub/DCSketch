@@ -7,11 +7,11 @@ void write_res(string dataset, string filename, vector<IdSpread>* superspreaders
 
 int main()
 {
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
     // vector<uint32_t> mems{2000};
-    uint32_t mem = 60000;
+    uint32_t mem = 30000;
     vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
     for(auto cmratio : cm_ratios){
         cout << "CarMon ratio: " << cmratio << endl;

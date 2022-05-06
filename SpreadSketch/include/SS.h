@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "hashfunc.h"
 #include "util.h"
+#include "DCSketch.h"
 
 using namespace std;
 #define HASH_SEED_1 92317
@@ -40,10 +41,16 @@ public:
 
 class SpreadSketch{
 public:
+    //CarMon: Filter
+    Bitmap_Arr CarMon_bm;
+    bool use_CarMon = true;
+    //SpreadSketch
     static const uint32_t r = 4;
     uint32_t w;
     vector<vector<SS_Bucket>> bkt_table;
-    SpreadSketch(uint32_t mem);
+
+public:
+    SpreadSketch(uint32_t mem, double cmratio);
     void update(string flowid, string elementid);
     uint32_t query(string flowid);
     void output_superspreaders(vector<IdSpread>& superspreaders);

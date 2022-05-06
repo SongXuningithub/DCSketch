@@ -57,17 +57,26 @@ uint32_t MultiResBitmap::get_cardinality(){
     return static_cast<uint32_t>(factor * m);
 }
 
-SpreadSketch::SpreadSketch(uint32_t mem){
-    w = mem * 1024 * 8 / r / SS_Bucket::bkt_size;
+SpreadSketch::SpreadSketch(uint32_t mem, double cmratio): CarMon_bm(mem * cmratio){
+    if(cmratio == 0)
+        use_CarMon = false;
+    w = mem * (1 - cmratio) * 1024 * 8 / r / SS_Bucket::bkt_size;
     bkt_table.resize(r);
     for(size_t i = 0;i < r;i++)
         bkt_table[i].resize(w);
 }
 
 void SpreadSketch::update(string flowid, string elementid){
-    uint32_t hashres32 = str_hash32(flowid + elementid, HASH_SEED_1);
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_2);
-    array<uint32_t,4> hashres32_arr{hashres128[0]>>32, static_cast<uint32_t>(hashres128[0]), hashres128[1]>>32, static_cast<uint32_t>(hashres128[1])}; 
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    array<uint64_t,2> hash_element = str_hash128(flowid + elementid, HASH_SEED_2);
+    if (use_CarMon) {
+        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+        if (full_flag == false)
+            return;
+    }
+    uint32_t hashres32(hash_element[0]);  //str_hash32(flowid + elementid, HASH_SEED_1);
+    array<uint64_t,2> hashres128(hash_flowid);  //str_hash128(flowid,HASH_SEED_2);
+    array<uint32_t,4> hashres32_arr{hashres128[0]>>32, hashres128[0], hashres128[1]>>32, hashres128[1]}; 
 
     uint32_t l = get_leading_zeros(hashres32);
     uint32_t setbit;
@@ -89,7 +98,8 @@ void SpreadSketch::update(string flowid, string elementid){
 
 uint32_t SpreadSketch::query(string flowid){
     uint32_t ret_val = static_cast<uint32_t>(1)<<31;
-    array<uint64_t,2> hashres128 = str_hash128(flowid,HASH_SEED_2);
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    array<uint64_t,2> hashres128(hash_flowid);  //str_hash128(flowid,HASH_SEED_2);
     array<uint32_t,4> hashres32_arr{hashres128[0]>>32, static_cast<uint32_t>(hashres128[0]), hashres128[1]>>32, static_cast<uint32_t>(hashres128[1])}; 
     for(size_t i = 0;i < r;i++){
         uint32_t idx = hashres32_arr[i] % w;  //str_hash32(flowid + to_string(i), HASH_SEED_2) % w;

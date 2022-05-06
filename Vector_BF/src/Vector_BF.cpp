@@ -195,7 +195,7 @@ void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>* superspreaders) {
             if (use_CarMon){
                 array<uint64_t,2> hash_flowid = str_hash128(ipstr, HASH_SEED_1);
                 array<uint64_t,2> hash_element = str_hash128(ipstr + "0", HASH_SEED_2);
-                bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+                bool full_flag = CarMon_bm.check_flow_full(hash_flowid);
                 if (full_flag == true){
                     superspreaders->push_back(IdSpread(ipstr,spread));
                 } else {

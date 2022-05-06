@@ -12,7 +12,7 @@ void write_sc(string dataset, vector<IdSpread>& superchanges, uint32_t tmpmem);
 
 int main()
 {
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
 
 #ifdef DETECT_SUPERSPREADERS
     uint32_t mem = 30000;
