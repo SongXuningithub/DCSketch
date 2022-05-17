@@ -116,7 +116,7 @@ void Vector_Bloom_Filter::calc_Z(uint32_t threshold) {
     Z = m * exp(-static_cast<double>(threshold)/m);
 }
 
-void Vector_Bloom_Filter::Merge_String(BF_Table& input1,BF_Table& input2,BF_Table& output) {
+void Vector_Bloom_Filter::Merge_String(BF_Table& input1, BF_Table& input2, BF_Table& output) {
     for(size_t i = 0;i < input1.rows;i++) {
         for(size_t j = 0;j < input2.rows;j++) {
             uint32_t u = input1.order_nums[i];
@@ -193,8 +193,7 @@ void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>* superspreaders) {
             
             //Filter out false positives with CarMon Bitmap Array 
             if (use_CarMon){
-                array<uint64_t,2> hash_flowid = str_hash128(ipstr, HASH_SEED_1);
-                array<uint64_t,2> hash_element = str_hash128(ipstr + "0", HASH_SEED_2);
+                // array<uint64_t,2> hash_flowid = str_hash128(ipstr, HASH_SEED_1);
                 bool full_flag = CarMon_bm.check_flow_full(hash_flowid);
                 if (full_flag == true){
                     superspreaders->push_back(IdSpread(ipstr,spread));

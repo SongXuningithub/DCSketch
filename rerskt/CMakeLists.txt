@@ -12,6 +12,7 @@ target_link_libraries(
     rerskt
     PUBLIC
     hashfunc
+    DCSketch
 )
 
 target_include_directories(

@@ -9,8 +9,10 @@ namespace regOP{
     vector<uint64_t> zero_patterns(64);
 }
 
-vHLL::vHLL(uint32_t mem): global_HLL(glb_HLL_size){
-    memory = mem;  //kB
+vHLL::vHLL(uint32_t mem, double cmratio): global_HLL(glb_HLL_size), CarMon_bm(mem * cmratio){
+    if(cmratio == 0)
+        use_CarMon = false;
+    memory = mem * (1 - cmratio);  //kB
     register_num = memory * 1024 * 8 / 5;
     raw.resize(memory * 1024 * 8 / 32 + 1);
     uint64_t allone = -1;
@@ -52,6 +54,14 @@ void vHLL::set_register(uint32_t reg_pos, uint8_t val){
 }
 
 void vHLL::process_packet(string flowID, string elementID){
+    //CarMon: filter
+    array<uint64_t,2> hash_flowid = str_hash128(flowID, HASH_SEED_1);
+    array<uint64_t,2> hash_element = str_hash128(flowID + elementID, HASH_SEED_2);
+    if (use_CarMon) {
+        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+        if (full_flag == false)
+            return;
+    }
     // uint32_t hash_flow = str_hash32(flowID, HASH_SEED_1);
     uint32_t hash_eleID = str_hash32(elementID, HASH_SEED_1);
     uint32_t reg_pos = str_hash32(flowID + to_string(hash_eleID & (HLL_size - 1)), HASH_SEED_2) % register_num;
@@ -117,6 +127,17 @@ uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){
 }
 
 int vHLL::get_spread(string flowID){
+    //CarMon: filter
+    int spread_layer1 = 0;
+    array<uint64_t,2> hash_flowid = str_hash128(flowID, HASH_SEED_1);
+    if (use_CarMon) {
+        spread_layer1 = CarMon_bm.get_spread(flowID, hash_flowid, 0);  //
+        if(spread_layer1 != BITMAP_FULL_FLAG)
+            return spread_layer1;
+        else
+            spread_layer1 = CarMon_bm.capacity;
+    }
+    //Virtual HyperLogLog
     vector<uint8_t> virtual_HLL(HLL_size);
     for(size_t i = 0;i < HLL_size;i++){
         uint32_t reg_pos = str_hash32(flowID + to_string(i), HASH_SEED_2) % register_num;
@@ -126,5 +147,5 @@ int vHLL::get_spread(string flowID){
     // double m = register_num, s = HLL_size;
     // double n_hat = get_spread(global_HLL);
     // double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
-    return round(ns_hat);
+    return round(ns_hat) + spread_layer1;
 }

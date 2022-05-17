@@ -46,7 +46,7 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
 class Bitmap_Arr{
 public:
     uint32_t memory;// = memory_size * 3 / 5;      //kB
-    static const uint32_t bitmap_size = 6;      //bits
+    static const uint32_t bitmap_size = 15;      //bits
     uint32_t bitmap_num;
     vector<uint32_t> raw;  
     array<uint16_t,bitmap_size> patterns;

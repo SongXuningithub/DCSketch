@@ -87,8 +87,10 @@ uint32_t getbit(array<uint64_t,2> hashres128,uint32_t pos){
 }
 
 template<class Estimator>
-RerSkt<Estimator>::RerSkt(uint32_t memory_): memory(memory_), table_size(memory * 1024 * 8 / 2 /Estimator::size), 
-    table1(table_size), table2(table_size) {
+RerSkt<Estimator>::RerSkt(uint32_t memory_, double cmratio): memory(memory_ * (1 - cmratio)), table_size(memory * 1024 * 8 / 2 /Estimator::size),
+table1(table_size), table2(table_size), CarMon_bm(memory_ * cmratio) {
+    if(cmratio == 0)
+        use_CarMon = false;
     for(size_t i = 0; i < table1.size();i++){
         table1[i].reset();
         table2[i].reset();
@@ -97,6 +99,15 @@ RerSkt<Estimator>::RerSkt(uint32_t memory_): memory(memory_), table_size(memory 
 
 template<class Estimator>
 void RerSkt<Estimator>::process_packet(string flowid, string element){
+    //CarMon: filter
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);
+    if (use_CarMon) {
+        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+        if (full_flag == false)
+            return;
+    }
+    //rerSketch
     uint32_t flow_hash = str_hash32(flowid,HASH_SEED_1);
     uint32_t Estimator_pos = flow_hash % table_size;
     uint32_t elem_hash = str_hash32(element,HASH_SEED_2);
@@ -143,6 +154,17 @@ void RerSkt<Estimator>::process_packet(string flowid, string element){
 
 template<class Estimator>
 int RerSkt<Estimator>::get_flow_spread(string flowid){
+    //CarMon: filter
+    int spread_layer1 = 0;
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    if (use_CarMon) {
+        spread_layer1 = CarMon_bm.get_spread(flowid, hash_flowid, 0);  //
+        if(spread_layer1 != BITMAP_FULL_FLAG)
+            return spread_layer1;
+        else
+            spread_layer1 = CarMon_bm.capacity;
+    }
+    //rerSketch
     uint32_t hashres_32 = str_hash32(flowid, HASH_SEED_1);
     uint32_t Estimator_pos = hashres_32 % table_size;
     Estimator primary_est;
@@ -165,7 +187,7 @@ int RerSkt<Estimator>::get_flow_spread(string flowid){
     int pri_spread = primary_est.get_spread();
     int comp_spread = complement_est.get_spread();
     int flow_spread = pri_spread - comp_spread;
-    return flow_spread;
+    return flow_spread + spread_layer1;
 }
 
 template class RerSkt<Bitmap>;

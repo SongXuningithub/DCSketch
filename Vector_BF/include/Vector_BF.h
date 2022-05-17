@@ -32,7 +32,7 @@ public:
     //VBF
     uint32_t m;
     uint32_t Z;
-    array<BF_Table,5> tables;
+    array<BF_Table, 5> tables;
 // #define HASH_SEED 92317
 
 public:

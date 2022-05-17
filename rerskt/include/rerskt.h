@@ -9,11 +9,12 @@
 #include<algorithm>
 #include<set>
 #include"hashfunc.h"
+#include"DCSketch.h"
 using namespace std;
 
-#define HASH_SEED_1 92317
-#define HASH_SEED_2 37361 
-#define HASH_SEED_3 52813
+// #define HASH_SEED_1 92317
+// #define HASH_SEED_2 37361 
+// #define HASH_SEED_3 52813
 
 class HLL{
 public:
@@ -68,6 +69,10 @@ struct MinHeapCmp{
 template<class Estimator>
 class RerSkt{
 private:
+    //CarMon: Filter
+    Bitmap_Arr CarMon_bm;
+    bool use_CarMon = true;
+    //rerSketch
     bool DETECT_SUPERSPREADER = false;
     uint32_t memory;  //kB
     uint32_t table_size;
@@ -80,7 +85,7 @@ public:
     uint32_t heap_size = 300;
     vector<FLOW> heap;
     set<string> inserted;
-    RerSkt(uint32_t memory_);
+    RerSkt(uint32_t memory_, double cmratio);
 };
 
 

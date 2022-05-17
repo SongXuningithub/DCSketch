@@ -12,8 +12,9 @@
 using namespace std;
 
 // #define TEST_PERFLOW_ACC 1
+// #define TEST_CARMON_PLUS_PRIOR_TASK1
 // #define TEST_SUPERSPREADER_ACC 1
-#define TEST_CARMON_PLUS_PRIOR
+#define TEST_CARMON_PLUS_PRIOR_TASK2
 // #define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
@@ -200,16 +201,55 @@ int main() {
     }
 #endif
 
-#ifdef TEST_CARMON_PLUS_PRIOR
+#ifdef TEST_CARMON_PLUS_PRIOR_TASK1
+    string dataset = "FACEBOOK";
+
+    uint32_t mem(1000);
+    vector<double> cm_ratios{0.05, 0.1, 0.15, 0.2, 0.25, 0.30, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    for(auto cm_ratio : cm_ratios){
+        // cout << "cm_ratio: " << cm_ratio << "   ";
+        string filename = datasets[dataset][0];
+        filename = to_string(mem)+ "_" + to_string(cm_ratio).substr(0,4) + "_" + filename + ".txt";
+        // cout<<filename<<endl;
+        // string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
+        string filepath = "../../vHLL/output/" + dataset + "/";
+        // string filepath = "../../rerskt/output/" + dataset + "/";
+        // string filepath = "../../bSkt/output/" + dataset + "/";
+        ifstream ifile(filepath + filename);
+        if(!ifile){
+            cout<<"unable to open file"<<endl;
+            return 0;
+        }
+        double relat_error = 0;
+        double abs_error = 0;
+        uint32_t num = 0;
+        while(!ifile.eof()){
+            string flowid;
+            int true_spread;
+            int estimated_spread;
+            ifile >> flowid >> true_spread >> estimated_spread;
+            relat_error += fabs((double)true_spread - estimated_spread)/true_spread;
+            abs_error += fabs((double)true_spread - estimated_spread);
+            num++;
+        }
+        double ARE = relat_error/num;
+        double AAE = abs_error/num;
+        // cout<<datasets[dataset][i]<<endl;
+        cout << ARE <<" ";
+    }
+    cout << endl;
+#endif
+
+#ifdef TEST_CARMON_PLUS_PRIOR_TASK2
     unordered_map<string,vector<uint32_t>> thresholds;
     thresholds["MAWI"] = {20000, 3000, 1300};
     thresholds["CAIDA"] = {8000, 3400, 1800};
     thresholds["KAGGLE"] = {1000};
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
 
-    uint32_t mem(1000);
-    vector<double> cm_ratios{0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    uint32_t mem(30000);
+    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
 
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
@@ -220,8 +260,8 @@ int main() {
 
             string esti_filename = to_string(mem)+ "_" + to_string(cm_ratio).substr(0,4) + "_" + filename;
             // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
-            ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
-            // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
+            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
+            ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
             // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + esti_filename + ".txt");
 

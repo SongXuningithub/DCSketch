@@ -64,8 +64,18 @@ int Bitmap::get_spread(){
 
 template<class Estimator>
 void bSkt<Estimator>::process_packet(string flowid, string element){
-    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
-    array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
+    //CarMon: filter
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);
+    if (use_CarMon) {
+        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+        if (full_flag == false)
+            return;
+    }
+
+    //bSkt
+    // array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
+    // array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
     for(size_t i = 0;i < 4;i++){
         uint32_t tmp_flow_hash = static_cast<uint32_t>( hash_flowid[i/2] >> ( ((i+1) % 2) * 32 ) );
         uint32_t tmp_element_hash = static_cast<uint32_t>( hash_element[i/2] >> ( ((i+1) % 2) * 32 ) );
@@ -110,7 +120,18 @@ void bSkt<Estimator>::process_packet(string flowid, string element){
 
 template<class Estimator>
 uint32_t bSkt<Estimator>::get_flow_spread(string flowid){
-    array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
+    //CarMon: filter
+    int spread_layer1 = 0;
+    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
+    if (use_CarMon) {
+        spread_layer1 = CarMon_bm.get_spread(flowid, hash_flowid, 0);  //
+        if(spread_layer1 != BITMAP_FULL_FLAG)
+            return spread_layer1;
+        else
+            spread_layer1 = CarMon_bm.capacity;
+    }
+    //bSkt
+    // array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     uint32_t spread = 1<<30;
     for(size_t i = 0;i < 4;i++){
         uint32_t tmp_flow_hash = static_cast<uint32_t>( hash_flowid[i/2] >> ( ((i+1) % 2) * 32 ) );
@@ -119,7 +140,7 @@ uint32_t bSkt<Estimator>::get_flow_spread(string flowid){
         if(tmp < spread)
             spread = tmp;
     }
-    return spread;
+    return spread + spread_layer1;
 }
 
 template class bSkt<HLL>;

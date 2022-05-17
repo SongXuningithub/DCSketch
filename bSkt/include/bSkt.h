@@ -10,6 +10,7 @@
 #include<set>
 #include "hashfunc.h"
 #include "util.h"
+#include "DCSketch.h"
 using namespace std;
 
 #define HASH_SEED_1 92317
@@ -58,6 +59,10 @@ struct MinHeapCmp{
 template<class Estimator>
 class bSkt{
 public:
+    //CarMon: Filter
+    Bitmap_Arr CarMon_bm;
+    bool use_CarMon = true;
+    //bSkt
     bool DETECT_SUPERSPREADER = false;
     uint32_t memory;  //kB
     uint32_t table_size = memory * 1024 * 8 / 4 /Estimator::size;
@@ -65,7 +70,7 @@ public:
 
     void process_packet(string flowid,string element);
     void report_superspreaders(vector<IdSpread>& superspreaders);
-    bSkt(uint32_t memory_);
+    bSkt(uint32_t memory_, double cmratio);
     uint32_t get_flow_spread(string flowid);
     uint32_t heap_size = 400;
     set<string> inserted;
@@ -73,12 +78,15 @@ public:
 };
 
 template<class Estimator>
-bSkt<Estimator>::bSkt(uint32_t memory_):memory(memory_), table_size(memory * 1024 * 8 / 4 /Estimator::size), tables(4){
-        tables[0].resize(table_size);
-        tables[1].resize(table_size);
-        tables[2].resize(table_size);
-        tables[3].resize(table_size);
-        cout << "tables[0].size(): " << tables[0].size() << endl;
+bSkt<Estimator>::bSkt(uint32_t memory_, double cmratio):memory(memory_ * (1 - cmratio)), table_size(memory * 1024 * 8 / 4 /Estimator::size), 
+tables(4), CarMon_bm(memory_ * cmratio){
+    if(cmratio == 0)
+        use_CarMon = false;
+    tables[0].resize(table_size);
+    tables[1].resize(table_size);
+    tables[2].resize(table_size);
+    tables[3].resize(table_size);
+    cout << "tables[0].size(): " << tables[0].size() << endl;
 }
 
 template<class Estimator>

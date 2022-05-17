@@ -12,7 +12,7 @@ int main()
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
     // vector<uint32_t> mems{2000};
     uint32_t mem = 30000;
-    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    vector<double> cm_ratios{0.04}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9   0, 0.01, 0.02, 0.03,
     for(auto cmratio : cm_ratios){
         cout << "CarMon ratio: " << cmratio << endl;
         uint32_t filenum = 1;
@@ -35,7 +35,7 @@ int main()
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 
-            uint32_t threshold = 600;
+            uint32_t threshold = 1300;
             vbf->calc_Z(threshold);
             vector<IdSpread>* superspreaders = new vector<IdSpread>;
             
