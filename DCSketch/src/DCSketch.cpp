@@ -28,17 +28,19 @@ Bitmap_Arr::Bitmap_Arr(uint32_t memory_): memory(memory_), bitmap_num(memory * 1
     cout<< "The number of LC(bitmap)s in layer 1: " << bitmap_num << endl;
 }
 
-uint16_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
+uint32_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
     using namespace metadata;
     bits_bias = bitmap_pos * bitmap_size;
     uint32_pos =  bits_bias / 32;
     inner_bias = bits_bias % 32;
     shift_ = 31 - (inner_bias + bitmap_size - 1);
-    uint16_t res;
-    if(shift_ >= 0) 
-        res = static_cast<uint16_t>(raw[uint32_pos] >> shift_);
+    uint32_t res;
+    if(shift_ >= 0)  
+        // res = static_cast<uint16_t>(raw[uint32_pos] >> shift_);
+        res = raw[uint32_pos] >> shift_;
     else
-        res = static_cast<uint16_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
+        // res = static_cast<uint16_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
+        res = (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_));
     res &= FULL_PAT;
     return res;
 }
@@ -46,7 +48,7 @@ uint16_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
 uint32_t zero_pos;
 bool has_zero = false;
 
-bool Bitmap_Arr::check_bitmap_full(uint16_t input_bitmap){
+bool Bitmap_Arr::check_bitmap_full(uint32_t input_bitmap){
     if( input_bitmap == FULL_PAT )
         return true;  
     has_zero = false;
@@ -67,7 +69,7 @@ bool Bitmap_Arr::check_flow_full(array<uint64_t,2>& hash_flowid){
     array<uint32_t,2> L1_pos;
     L1_pos[0] = static_cast<uint32_t>(hash_flowid[0]>>32) % bitmap_num;
     L1_pos[1] = static_cast<uint32_t>(hash_flowid[0]) % bitmap_num;
-    uint16_t tmp_bitmap = get_bitmap(L1_pos[0]);
+    uint32_t tmp_bitmap = get_bitmap(L1_pos[0]);
     if(check_bitmap_full(tmp_bitmap) == false){
         return false;
     } else {   //the hashed bitmap(linear-counting) has been full, so we check the other one.  
@@ -98,7 +100,7 @@ bool Bitmap_Arr::process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2
     uint32_t hashres32 = static_cast<uint32_t>(hash_element[0] >> 32);
     bool tmpidx = (hashres32 >> 16) & 1;
     uint32_t update_pos = L1_pos[tmpidx];  //(hashres32>>16) % 2
-    uint16_t tmp_bitmap = get_bitmap(update_pos);
+    uint32_t tmp_bitmap = get_bitmap(update_pos);
     if(check_bitmap_full(tmp_bitmap) == false){
         uint32_t update_bit = static_cast<uint16_t>(hashres32) % bitmap_size;
         set_bit(update_bit);
@@ -121,7 +123,7 @@ int Bitmap_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32
     double min_spread = 1000;
     bool all_full = true;
     for(size_t i = 0;i < L1_pos.size();i++){
-        uint16_t tmp_bitmap = get_bitmap(L1_pos[i]);
+        uint32_t tmp_bitmap = get_bitmap(L1_pos[i]);
         size_t zeros_num = 0;
         for(size_t bit_pos = 0;bit_pos < bitmap_size;bit_pos++){
             if( (tmp_bitmap & patterns[bit_pos]) == 0)
@@ -278,7 +280,7 @@ void DCSketch::report_superspreaders(vector<IdSpread>& superspreaders){
         else{
             checked_flows.insert(tmp_flowid);
             //array<uint64_t,2> hash_flowid = str_hash128(tmp_flowid,HASH_SEED_1);
-            uint32_t esti_card = query_spread(tmp_flowid); 
+            uint32_t esti_card = get_flow_spread(tmp_flowid); 
             superspreaders.push_back( IdSpread(tmp_flowid,esti_card) );
         }
     }
@@ -349,7 +351,7 @@ uint32_t Global_HLLs::get_number_elements(uint32_t layer){
         return get_cardinality(Layer2_elements); 
 }
 
-uint32_t DCSketch::process_element(string flowid,string element) {
+uint32_t DCSketch::process_packet(string flowid,string element) {
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
     bool layer1_full = layer1.process_packet(hash_flowid,hash_element);
@@ -389,7 +391,7 @@ void DCSketch::get_global_info() {
     return;
 }
 
-uint32_t DCSketch::query_spread(string flowid){
+uint32_t DCSketch::get_flow_spread(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     int spread_layer1 = layer1.get_spread(flowid, hash_flowid, 0);  //
     int ret;

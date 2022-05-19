@@ -40,7 +40,7 @@ public:
 public:
     CDS(uint32_t mem, double cmratio); //kB
     uint32_t hash_funs(uint32_t i, uint32_t x);
-    void update(string flowid, string element);
+    void process_packet(string flowid, string element);
     uint32_t get_cardinality(vector<uint8_t> vec);
     uint32_t get_cardinality(uint32_t x);
     void FindSuperCols();

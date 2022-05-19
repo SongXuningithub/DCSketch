@@ -3,8 +3,8 @@
 #include <ctime>
 #include <unordered_map>
 
-#define DETECT_SUPERSPREADERS 1
-// #define DETECT_SUPERCHANGES 1
+// #define DETECT_SUPERSPREADERS 1
+#define DETECT_SUPERCHANGES 1
 
 
 void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, double cmratio);
@@ -12,8 +12,7 @@ void write_sc(string dataset, vector<IdSpread>& superchanges, uint32_t tmpmem);
 
 int main()
 {
-    string dataset = "CAIDA";
-
+    vector<string> datasets{"MAWI", "CAIDA"};
 #ifdef DETECT_SUPERSPREADERS
     uint32_t mem = 30000;
     vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04, 0.05}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -47,53 +46,48 @@ int main()
 #endif
 
 #ifdef DETECT_SUPERCHANGES
-    // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{2000};
-    for(auto tmpmem : mems){
-        cout << "memory: " << tmpmem << endl;
-
-        CDS cds1(tmpmem);
-        string filename = datasets[dataset][0];
-        PCAP_SESSION session1(dataset,filename,PCAP_FILE);
-        IP_PACKET cur_packet;
-        string srcip,dstip;
-
-        while(int status = session1.get_packet(cur_packet)){
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if(per_src_flow)
-                cds1.update(srcip,dstip);
-            else
-                cds1.update(dstip,srcip);
-            /**/
-            if(session1.proc_num() == 1788648)
-                break;
-            /**/
+    for (string dataset:datasets){
+        cout << dataset << endl;
+        vector<uint32_t> mems;  //{75000, 100000, 125000, 150000}
+        cout << "memories: ";
+        for (size_t i = 0; i < 9;i++){
+            mems.push_back(1000 * pow(2, i));
+            cout << mems[i] << " ";
         }
+        cout << endl;
+        vector<double> times;
+        for(auto tmpmem : mems){
+            cout << "memory: " << tmpmem << endl;
+            string flowID, elemID;
 
-        CDS cds2(tmpmem);
-        filename = datasets[dataset][0]; /*KAGGLE*/
-        PCAP_SESSION session2(dataset,filename,PCAP_FILE);
+            CDS cds1(tmpmem, 0);
+            FILE_HANDLER filehandler1(dataset, 0);
+            while(int status = filehandler1.get_item(flowID, elemID)){
+                cds1.process_packet(flowID, elemID);
+            }
 
-        while(int status = session2.get_packet(cur_packet)){
-            /**/
-            if(session2.proc_num() <= 1788648)
-                continue;
-            /**/
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if(per_src_flow)
-                cds2.update(srcip,dstip);
-            else
-                cds2.update(dstip,srcip);
+            CDS cds2(tmpmem, 0);
+            FILE_HANDLER filehandler2(dataset, 1);
+            while(int status = filehandler2.get_item(flowID, elemID)){
+                cds2.process_packet(flowID, elemID);
+            }
+
+            clock_t startTime, endTime;
+            startTime = clock();
+            vector<IdSpread> superchanges;
+            cds2.DetectSuperChanges(cds1, superchanges);
+            endTime = clock();
+            // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            times.push_back((double)(endTime - startTime) / CLOCKS_PER_SEC);
+            sort(superchanges.begin(), superchanges.end(), IdSpreadComp);
+            write_sc(dataset, superchanges, tmpmem);
         }
-
-        vector<IdSpread> superchanges;
-        cds2.DetectSuperChanges(cds1, superchanges);
-        sort(superchanges.begin(), superchanges.end(), IdSpreadComp);
-        write_sc(dataset, superchanges, tmpmem);
-    
-    }
+        cout <<"Recovery times: ";
+        for (double tmp : times){
+            cout << tmp << "s ";
+        }
+        cout << endl;
+    } 
     return 0;
 
 #endif

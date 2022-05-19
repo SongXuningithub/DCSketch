@@ -50,7 +50,7 @@ public:
     uint8_t get_register(uint32_t reg_pos);
     void set_register(uint32_t reg_pos, uint8_t val);
     uint32_t get_spread(vector<uint8_t> virtual_HLL);
-    int get_spread(string flowID);
+    int get_flow_spread(string flowID);
 };
 
 

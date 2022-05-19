@@ -15,7 +15,7 @@ uint32_t CDS::hash_funs(uint32_t i, uint32_t x){
     return res;
 }
 
-void CDS::update(string flowid, string element){
+void CDS::process_packet(string flowid, string element){
     if (use_CarMon) {
         array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
         array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);

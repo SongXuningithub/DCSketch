@@ -14,8 +14,8 @@ using namespace std;
 // #define TEST_PERFLOW_ACC 1
 // #define TEST_CARMON_PLUS_PRIOR_TASK1
 // #define TEST_SUPERSPREADER_ACC 1
-#define TEST_CARMON_PLUS_PRIOR_TASK2
-// #define TEST_SUPERCHANGES_ACC 1
+// #define TEST_CARMON_PLUS_PRIOR_TASK2
+#define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_recall(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
@@ -149,9 +149,9 @@ int main() {
     thresholds["CAIDA"] = {5000, 4000};
     thresholds["KAGGLE"] = {100};
 
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
 
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{5000, 50000, 75000, 100000, 125000, 150000};
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
         for(auto tmpmem : mems){
@@ -160,8 +160,8 @@ int main() {
             ifstream ifile_truth("../../get_groundtruth/SuperChanges/" + dataset + ".txt");
             
             string filename = to_string(tmpmem) + "_" + dataset;
-            ifstream ifile_esti("../../DCSketch/output/SuperChanges/"+ dataset+ "/" + filename + ".txt"); 
-            // ifstream ifile_esti("../../CDS/output/SuperChanges/"+dataset+"/" + filename + ".txt");
+            // ifstream ifile_esti("../../DCSketch/output/SuperChanges/"+ dataset+ "/" + filename + ".txt"); 
+            ifstream ifile_esti("../../CDS/output/SuperChanges/"+dataset+"/" + filename + ".txt");
 
             if(!ifile_truth || !ifile_esti){
                 cout<<"unable to open file"<<endl;
@@ -176,7 +176,7 @@ int main() {
                     superchanges.push_back(IdSpread(flowid,true_spread));
             }
             vector<IdSpread> superchanges_esti;
-            double tuned_threshold = threshold * (1 - 0.4 * 0.1856);
+            double tuned_threshold = threshold;
             while(!ifile_esti.eof()){
                 string flowid;
                 uint32_t esti_spread;
@@ -246,10 +246,10 @@ int main() {
     thresholds["CAIDA"] = {8000, 3400, 1800};
     thresholds["KAGGLE"] = {1000};
 
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
 
-    uint32_t mem(30000);
-    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    uint32_t mem(1000);
+    vector<double> cm_ratios{0, 0.1, 0.2, 0.3};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
 
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
@@ -260,8 +260,8 @@ int main() {
 
             string esti_filename = to_string(mem)+ "_" + to_string(cm_ratio).substr(0,4) + "_" + filename;
             // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
-            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
-            ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
+            ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
+            // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
             // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + esti_filename + ".txt");
 

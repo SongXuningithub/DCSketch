@@ -187,6 +187,8 @@ int RerSkt<Estimator>::get_flow_spread(string flowid){
     int pri_spread = primary_est.get_spread();
     int comp_spread = complement_est.get_spread();
     int flow_spread = pri_spread - comp_spread;
+    if (flow_spread < 0)
+        flow_spread = 0;
     return flow_spread + spread_layer1;
 }
 

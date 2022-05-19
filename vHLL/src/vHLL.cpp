@@ -79,7 +79,7 @@ void vHLL::process_packet(string flowID, string elementID){
     //detect superspreaders
     if(DETECT_SUPERSPREADER == false)
         return;
-    uint32_t flowsrpead = get_spread(flowID);
+    uint32_t flowsrpead = get_flow_spread(flowID);
     FLOW tmpflow;
     tmpflow.flowid = flowID;  tmpflow.flow_spread = flowsrpead;
     if(inserted.find(flowID) != inserted.end()){
@@ -126,7 +126,7 @@ uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){
     return static_cast<uint32_t>(E);
 }
 
-int vHLL::get_spread(string flowID){
+int vHLL::get_flow_spread(string flowID){
     //CarMon: filter
     int spread_layer1 = 0;
     array<uint64_t,2> hash_flowid = str_hash128(flowID, HASH_SEED_1);

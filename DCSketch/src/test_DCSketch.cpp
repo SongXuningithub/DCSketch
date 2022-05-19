@@ -11,9 +11,9 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-#define OUTPUT_PERFLOW_SPREAD 1
+// #define OUTPUT_PERFLOW_SPREAD 1
 // #define OUTPUT_SUPER_SPREADERS 1
-// #define OUTPUT_SUPER_CHANGES 1
+#define OUTPUT_SUPER_CHANGES 1
 
 void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
@@ -23,110 +23,89 @@ void WriteSuperChanges(string dataset, vector<IdSpread>& superchanges, uint32_t 
 
 int main()
 {
-    string dataset = "CAIDA";
+    // DCSketch dcsketch_notuse(200, 0.6);
+    // Get_Mem(dcsketch_notuse);
 
 #ifndef OUTPUT_SUPER_CHANGES
-    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    // vector<uint32_t> mems{2000};
-    for(auto tmpmem : mems){
-        cout << "memory: " << tmpmem << endl;
-        uint32_t filenum = 5;
-        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
-            DCSketch dcsketch(tmpmem, 0.6);
-            FILE_HANDLER filehandler(dataset, i);
+    // string dataset = "CAIDA";
+    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    // // vector<uint32_t> mems{500, 1000, 1500, 2000};
+    // // vector<uint32_t> mems{2000};
+    // for(auto tmpmem : mems){
+    //     cout << "memory: " << tmpmem << endl;
+    //     uint32_t filenum = 5;
+    //     for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+    //         DCSketch dcsketch(tmpmem, 0.6);
+    //         FILE_HANDLER filehandler(dataset, i);
 
-            string flowID, elemID;
-            clock_t startTime,endTime;
-            startTime = clock();
-            // set<pair<string,string>> layer1_items;
-            // set<pair<string,string>> layer2_items;
-            // set<string> layer2_flows;
+    //         string flowID, elemID;
+    //         clock_t startTime,endTime;
+    //         startTime = clock();
+    //         // set<pair<string,string>> layer1_items;
+    //         // set<pair<string,string>> layer2_items;
+    //         // set<string> layer2_flows;
 
-            while(int status = filehandler.get_item(flowID, elemID)){
-                dcsketch.process_element(flowID, elemID);
-                if(filehandler.proc_num()%1000000 == 0)
-                    cout<<"process packet "<<filehandler.proc_num()<<endl;
-            }
-            // set<pair<string,string>> inter_items; 
-            // set_intersection(layer1_items.begin(), layer1_items.end(), layer2_items.begin(), layer2_items.end(),
-            //     inserter(inter_items, inter_items.begin()));
-            // cout << "inter_items: " << inter_items.size() << " layer2_flows: " << layer2_flows.size() << " average " <<
-            // static_cast<double>(inter_items.size()) / layer2_flows.size()  <<endl;
+    //         while(int status = filehandler.get_item(flowID, elemID)){
+    //             dcsketch.process_element(flowID, elemID);
+    //             if(filehandler.proc_num()%1000000 == 0)
+    //                 cout<<"process packet "<<filehandler.proc_num()<<endl;
+    //         }
+    //         // set<pair<string,string>> inter_items; 
+    //         // set_intersection(layer1_items.begin(), layer1_items.end(), layer2_items.begin(), layer2_items.end(),
+    //         //     inserter(inter_items, inter_items.begin()));
+    //         // cout << "inter_items: " << inter_items.size() << " layer2_flows: " << layer2_flows.size() << " average " <<
+    //         // static_cast<double>(inter_items.size()) / layer2_flows.size()  <<endl;
 
-            endTime = clock();
-            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            dcsketch.get_global_info();
-        #ifdef OUTPUT_PERFLOW_SPREAD
-            write_perflow_spread(dataset, filehandler.get_filename(), dcsketch, tmpmem);
-        #endif
+    //         endTime = clock();
+    //         cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    //         dcsketch.get_global_info();
+    //     #ifdef OUTPUT_PERFLOW_SPREAD
+    //         write_perflow_spread(dataset, filehandler.get_filename(), dcsketch, tmpmem);
+    //     #endif
         
-        #ifdef OUTPUT_SUPER_SPREADERS
-            vector<IdSpread> superspreaders;
-            startTime = clock();
-            dcsketch.report_superspreaders(superspreaders);
-            endTime = clock();
-            cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            write_superspreaders(dataset, filename, superspreaders, tmpmem);
-        #endif
-        }
-    }
+    //     #ifdef OUTPUT_SUPER_SPREADERS
+    //         vector<IdSpread> superspreaders;
+    //         startTime = clock();
+    //         dcsketch.report_superspreaders(superspreaders);
+    //         endTime = clock();
+    //         cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    //         write_superspreaders(dataset, filename, superspreaders, tmpmem);
+    //     #endif
+    //     }
+    // }
     
 #else
+
+    string dataset = "MAWI";
     uint32_t superchange_thresh = 100;
-    // uint32_t superchange_thresh = 1000;
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{5000, 50000};
+
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        
+
+        DCSketch dcsketch1(tmpmem, 0.6);
+        FILE_HANDLER filehandler1(dataset, 0);
+        string flowID, elemID;
         /*---first epoch---*/
-        DCSketch dcsketch1(tmpmem,0.6);
-        string filename = datasets[dataset][0];
-        PCAP_SESSION session1(dataset,filename,CSV_FILE);
-        IP_PACKET cur_packet;
-        string srcip,dstip;
-        while(int status = session1.get_packet(cur_packet)){
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if (per_src_flow)
-                dcsketch1.process_element(srcip,dstip);
-            else
-                dcsketch1.process_element(dstip,srcip);
-            /**/
-            if(session1.proc_num() == 1788648)
-                break;
-            /**/
+        while(int status = filehandler1.get_item(flowID, elemID)){
+            dcsketch1.process_packet(flowID, elemID);
         }
-        dcsketch1.get_global_info();
         vector<IdSpread> superspreaders1;
         dcsketch1.report_superspreaders(superspreaders1);
-
         /*---second epoch---*/
-        DCSketch dcsketch2(tmpmem,0.6);
-        filename = datasets[dataset][0];  /*KAGGLE*/
-        PCAP_SESSION session2(dataset,filename,CSV_FILE);
-        while(int status = session2.get_packet(cur_packet)){
-            /**/
-            if(session2.proc_num() <= 1788648)
-                continue;
-            /**/
-            srcip = cur_packet.get_srcip();
-            dstip = cur_packet.get_dstip();
-            if (per_src_flow)
-                dcsketch2.process_element(srcip,dstip);
-            else
-                dcsketch2.process_element(dstip,srcip);
+        DCSketch dcsketch2(tmpmem, 0.6);
+        FILE_HANDLER filehandler2(dataset, 1);
+        while(int status = filehandler2.get_item(flowID, elemID)){
+            dcsketch2.process_packet(flowID, elemID);
         }
-        dcsketch2.get_global_info();
         vector<IdSpread> superspreaders2;
         dcsketch2.report_superspreaders(superspreaders2);
-
         /*---detect super changes---*/
         vector<IdSpread> superchanges;
         set<string> inserted;
         for(size_t i = 0;i < superspreaders1.size();i++){
             auto tmp = superspreaders1[i].flowID;
-            uint32_t change_val = abs((int)dcsketch2.query_spread(tmp) - (int)dcsketch1.query_spread(tmp));
+            uint32_t change_val = abs((int)dcsketch2.get_flow_spread(tmp) - (int)dcsketch1.get_flow_spread(tmp));
             if(change_val >= superchange_thresh){
                 if(inserted.find(tmp) == inserted.end()){
                     superchanges.push_back(IdSpread(tmp,change_val));
@@ -136,7 +115,7 @@ int main()
         }
         for(size_t i = 0;i < superspreaders2.size();i++){
             auto tmp = superspreaders2[i].flowID;
-            uint32_t change_val = abs((int)dcsketch2.query_spread(tmp) - (int)dcsketch1.query_spread(tmp));
+            uint32_t change_val = abs((int)dcsketch2.get_flow_spread(tmp) - (int)dcsketch1.get_flow_spread(tmp));
             if(change_val >= superchange_thresh){
                 if(inserted.find(tmp) == inserted.end()){
                     superchanges.push_back(IdSpread(tmp,change_val));
@@ -145,9 +124,9 @@ int main()
             }
         }
         sort(superchanges.begin(), superchanges.end(), IdSpreadComp);
-        // WriteSuperChanges(dataset, superchanges,tmpmem);
-    }
 
+        WriteSuperChanges(dataset, superchanges, tmpmem);
+    }
 #endif
     return 0;
 }
@@ -176,7 +155,7 @@ void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint
         uint32_t spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
-        uint32_t estimated_spread = dcsketch.query_spread(flowid);
+        uint32_t estimated_spread = dcsketch.get_flow_spread(flowid);
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
     }
     // endTime = clock();
@@ -248,7 +227,7 @@ void write_meta(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpme
         uint32_t spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
-        uint32_t estimated_spread = dcsketch.query_spread(flowid);
+        uint32_t estimated_spread = dcsketch.get_flow_spread(flowid);
         ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
     }
     // endTime = clock();

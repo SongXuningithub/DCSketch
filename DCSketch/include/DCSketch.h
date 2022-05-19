@@ -46,19 +46,19 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
 class Bitmap_Arr{
 public:
     uint32_t memory;// = memory_size * 3 / 5;      //kB
-    static const uint32_t bitmap_size = 15;      //bits
+    static const uint32_t bitmap_size = 6;      //bits
     uint32_t bitmap_num;
     vector<uint32_t> raw;  
-    array<uint16_t,bitmap_size> patterns;
+    array<uint32_t, bitmap_size> patterns;
     array<double,bitmap_size + 1> spreads;
-    static const uint16_t FULL_PAT  = (1 << bitmap_size) - 1;
+    static const uint32_t FULL_PAT  = (1 << bitmap_size) - 1;
     int capacity;
     static constexpr double thresh_ratio = 1.256 / 2;  //error removal
 #define BITMAP_FULL_FLAG -1
 
     Bitmap_Arr(uint32_t memory_);    
-    uint16_t get_bitmap(uint32_t bitmap_pos);
-    bool check_bitmap_full(uint16_t input_bitmap);
+    uint32_t get_bitmap(uint32_t bitmap_pos);
+    bool check_bitmap_full(uint32_t input_bitmap);
     bool check_flow_full(array<uint64_t,2>& hash_flowid);
     bool set_bit(uint32_t bit_pos);
     bool process_packet(array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
@@ -147,8 +147,8 @@ public:
     array<uint32_t,2001> Error_RMV;
 
     DCSketch(uint32_t memory_size, double layer1_ratio);
-    uint32_t process_element(string flowid,string element);
-    uint32_t query_spread(string flowid);
+    uint32_t process_packet(string flowid,string element);
+    uint32_t get_flow_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
     void get_global_info();
     array<double,2> GetLoadFactor();

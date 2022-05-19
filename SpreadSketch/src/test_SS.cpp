@@ -10,7 +10,7 @@ int main()
     string dataset = "MAWI"; 
 
     uint32_t mem = 1000;
-    vector<double> cm_ratios{0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}; //
+    vector<double> cm_ratios{0.1, 0.2, 0.3}; //0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
     for(auto cmratio : cm_ratios){
         cout << "CarMon ratio: " << cmratio << endl;
         uint32_t filenum = 1;
