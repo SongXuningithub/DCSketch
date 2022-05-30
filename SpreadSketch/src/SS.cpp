@@ -110,7 +110,7 @@ uint32_t SpreadSketch::query(string flowid){
     return ret_val;
 }
 
-void SpreadSketch::output_superspreaders(vector<IdSpread>& superspreaders){
+void SpreadSketch::report_superspreaders(vector<IdSpread>& superspreaders){
     superspreaders.clear();
     set<string> checked_flows;
     for(size_t row = 0;row < r;row++){

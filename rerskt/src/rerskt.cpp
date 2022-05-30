@@ -100,9 +100,11 @@ table1(table_size), table2(table_size), CarMon_bm(memory_ * cmratio) {
 template<class Estimator>
 void RerSkt<Estimator>::process_packet(string flowid, string element){
     //CarMon: filter
-    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
-    array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);
+    array<uint64_t,2> hash_flowid;
+    array<uint64_t,2> hash_element;
     if (use_CarMon) {
+        hash_flowid = str_hash128(flowid, HASH_SEED_1);
+        hash_element = str_hash128(flowid + element, HASH_SEED_2);
         bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
         if (full_flag == false)
             return;

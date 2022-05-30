@@ -27,6 +27,12 @@ int main()
     // Get_Mem(dcsketch_notuse);
 
 #ifndef OUTPUT_SUPER_CHANGES
+    DCSketch not_used(300, 0.6);
+    
+    // Test_task1(not_used, 0.6);
+
+    string ofile_path = "../../DCSketch/output/SuperSpreaders";
+    Test_task2(not_used, ofile_path, 0.6);
     // string dataset = "CAIDA";
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // // vector<uint32_t> mems{500, 1000, 1500, 2000};
@@ -76,10 +82,15 @@ int main()
     
 #else
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
     uint32_t superchange_thresh = 100;
-    vector<uint32_t> mems{5000, 50000};
-
+    vector<uint32_t> mems;
+    cout << "memories: ";
+    for (int i = 3; i < 9;i++){
+        mems.push_back(1000 * pow(2, i-1));
+        // cout << mems[i] << " ";
+    }
+    cout << endl;
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
 
@@ -105,7 +116,12 @@ int main()
         set<string> inserted;
         for(size_t i = 0;i < superspreaders1.size();i++){
             auto tmp = superspreaders1[i].flowID;
-            uint32_t change_val = abs((int)dcsketch2.get_flow_spread(tmp) - (int)dcsketch1.get_flow_spread(tmp));
+            int epoch1_val = (int)dcsketch1.get_flow_spread(tmp);
+            int epoch2_val = (int)dcsketch2.get_flow_spread(tmp);
+            uint32_t change_val = abs(epoch1_val - epoch2_val);
+            if (tmp == "122110128016"){
+                cout << "change_val: " << change_val << endl;
+            }
             if(change_val >= superchange_thresh){
                 if(inserted.find(tmp) == inserted.end()){
                     superchanges.push_back(IdSpread(tmp,change_val));
@@ -115,7 +131,12 @@ int main()
         }
         for(size_t i = 0;i < superspreaders2.size();i++){
             auto tmp = superspreaders2[i].flowID;
-            uint32_t change_val = abs((int)dcsketch2.get_flow_spread(tmp) - (int)dcsketch1.get_flow_spread(tmp));
+            int epoch1_val = (int)dcsketch1.get_flow_spread(tmp);
+            int epoch2_val = (int)dcsketch2.get_flow_spread(tmp);
+            uint32_t change_val = abs(epoch1_val - epoch2_val);
+            if (tmp == "122110128016"){
+                cout << "change_val: " << change_val << endl;
+            }
             if(change_val >= superchange_thresh){
                 if(inserted.find(tmp) == inserted.end()){
                     superchanges.push_back(IdSpread(tmp,change_val));

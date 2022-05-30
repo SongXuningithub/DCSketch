@@ -7,28 +7,33 @@
 #define DETECT_SUPERCHANGES 1
 
 
-void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, double cmratio);
+void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, uint32_t cm_mem);
 void write_sc(string dataset, vector<IdSpread>& superchanges, uint32_t tmpmem);
 
 int main()
 {
-    vector<string> datasets{"MAWI", "CAIDA"};
+    string dataset = "MAWI";
+
 #ifdef DETECT_SUPERSPREADERS
     uint32_t mem = 30000;
-    vector<double> cm_ratios{0, 0.01, 0.02, 0.03, 0.04, 0.05}; //0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
-    for(auto cmratio : cm_ratios){
-        cout << "CarMon ratio: " << cmratio << endl;
+    vector<double> cm_mems;
+    for (size_t i = 1;i < 13;i++){
+        cm_mems.push_back(i * 50);
+    }
+    
+    for(auto cm_mem : cm_mems){
+        cout << "CarMon memory: " << cm_mem << endl;
+        double cm_ratio = (double)cm_mem/mem;
+        cout << cm_ratio <<endl;
         uint32_t filenum = 1;
         for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
-            CDS* cds = new CDS(mem, cmratio);
+            CDS* cds = new CDS(mem, cm_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
             clock_t startTime,endTime;
             startTime = clock();
             while(int status = filehandler.get_item(flowID, elemID)){
-                cds->update(flowID, elemID);
-                // if(filehandler.proc_num() == 1e6)
-                //     break;
+                cds->process_packet(flowID, elemID);
             }
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
@@ -38,7 +43,7 @@ int main()
             cds->DetectSuperSpreaders(superspreaders);
             endTime = clock();
             cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            write_ss(dataset, filehandler.get_filename(), superspreaders, mem, cmratio);
+            write_ss(dataset, filehandler.get_filename(), superspreaders, mem, cm_mem);
         }
     }
     
@@ -46,15 +51,16 @@ int main()
 #endif
 
 #ifdef DETECT_SUPERCHANGES
+    vector<string> datasets{"MAWI"};
     for (string dataset:datasets){
         cout << dataset << endl;
-        vector<uint32_t> mems;  //{75000, 100000, 125000, 150000}
-        cout << "memories: ";
-        for (size_t i = 0; i < 9;i++){
-            mems.push_back(1000 * pow(2, i));
-            cout << mems[i] << " ";
-        }
-        cout << endl;
+        vector<uint32_t> mems{1024000};  //{75000, 100000, 125000, 150000}
+        // cout << "memories: ";
+        // for (size_t i = 0; i < 9;i++){
+        //     mems.push_back(1000 * pow(2, i));
+        //     cout << mems[i] << " ";
+        // }
+        // cout << endl;
         vector<double> times;
         for(auto tmpmem : mems){
             cout << "memory: " << tmpmem << endl;
@@ -93,12 +99,12 @@ int main()
 #endif
 }
 
-void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, double cmratio){
+void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, uint32_t cm_mem){
     //string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
     string ofile_path = "../../CDS/output/SuperSpreaders/" + dataset + "/";
     ifstream ifile_hand;
     ofstream ofile_hand;
-    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + to_string(cmratio).substr(0,4) + "_" + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + to_string(cm_mem).substr(0,4) + "_" + filename + ".txt");
     if(!ofile_hand){
         cout<<"fail to open files."<<endl;
         return;

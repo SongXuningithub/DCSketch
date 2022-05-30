@@ -10,7 +10,8 @@
 #include <algorithm>
 using namespace std;
 
-#define PER_FLOW_INFO 1
+// #define PER_FLOW_INFO 1
+#define GET_STATISTICS 1
 // #define SUPER_SPREADERS 1
 // #define SUPER_CHANGES 1
 // #define GEN_SUB_TRACES 1
@@ -21,8 +22,8 @@ int main()
 {
 #ifdef PER_FLOW_INFO
     unordered_map<string,set<string>> truth;
-    string dataset = "CAIDA_SUB";
-    uint32_t filenum = 11;
+    string dataset = "CAIDA";
+    uint32_t filenum = 1;
     for (size_t i = 0;i < filenum; i++){
         FILE_HANDLER filehandler(dataset, i);
 
@@ -79,6 +80,39 @@ int main()
         truthglobal_file<<"biggest spread: "<<biggest_spread<<endl;
         truthfile.close();
         truthglobal_file.close();
+    }
+    
+#endif
+
+#ifdef GET_STATISTICS
+    unordered_map<string,set<string>> truth;
+    string dataset = "FACEBOOK";
+    uint32_t filenum = 1;
+    for (size_t i = 0;i < filenum; i++){
+        FILE_HANDLER filehandler(dataset, i);
+
+        string flowid, elemID;
+        while(int status = filehandler.get_item(flowid, elemID)){
+            // cout << flowid << "  " << elemID << endl;
+            truth[flowid].insert(elemID);
+            if(filehandler.proc_num()%1000000 == 0){
+                cout<<"have processed "<<filehandler.proc_num()<<" items."<<endl;
+            }
+        }
+        
+        uint32_t combined_card = 0;
+        vector<uint32_t> cardinalities;
+        for(auto iter = truth.begin();iter!=truth.end();iter++){
+            uint32_t cur_spread = iter->second.size();
+            cardinalities.push_back(cur_spread);
+            combined_card += cur_spread;
+        }
+        sort(cardinalities.begin(), cardinalities.end());
+        int per99dot99 = cardinalities.size() * 0.9999;
+        int per99dot9 = cardinalities.size() * 0.999;
+        int per99 = cardinalities.size() * 0.99;
+        cout << "combined_card: " << combined_card << endl;
+        cout << cardinalities[per99dot99] << " " << cardinalities[per99dot9] << " " << cardinalities[per99] << endl;
     }
     
 #endif

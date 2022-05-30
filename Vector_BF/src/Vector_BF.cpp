@@ -25,8 +25,10 @@ void BF_Table::append(uint32_t order_num,vector<uint8_t> rowdata) {
 /****************************************************************/
 
 Vector_Bloom_Filter::Vector_Bloom_Filter(uint32_t mem, double cmratio): CarMon_bm(mem * cmratio) {
-    if(cmratio == 0)
+    if(cmratio == 0){
         use_CarMon = false;
+        cout << "CarMon not used" << endl;
+    }   
     m = mem * (1 - cmratio) * 1024 * 8 / 5 / 4096;
     cout<<"m="<<m<<endl; 
     for(size_t k = 0;k < 5;k++) {
@@ -60,7 +62,7 @@ void Vector_Bloom_Filter::process_packet(string srcip, array<uint8_t,4> srcip_tu
         bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
         if (full_flag == false)
             return;
-    }
+    } 
     //initial vector bloom filter
     uint32_t col = VBF_hash_f(hash_element);
     for(size_t k = 1;k <= 5;k++){

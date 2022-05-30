@@ -85,7 +85,7 @@ int main() {
     thresholds["CAIDA"] = {8000, 3400, 1800};
     thresholds["KAGGLE"] = {1000};
 
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
 
     vector<uint32_t> mems{500, 1000, 1500, 2000};
     // vector<uint32_t> mems{1000};
@@ -117,7 +117,7 @@ int main() {
                     superspreaders.push_back(IdSpread(flowid,true_spread));
             }
             vector<IdSpread> superspreaders_esti;
-            double tuned_threshold = threshold;// * (1 - 0.4 * 0.1856);
+            double tuned_threshold = threshold;
             while(!ifile_esti.eof()){
                 string flowid;
                 uint32_t esti_spread;
@@ -149,19 +149,26 @@ int main() {
     thresholds["CAIDA"] = {5000, 4000};
     thresholds["KAGGLE"] = {100};
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
 
-    vector<uint32_t> mems{5000, 50000, 75000, 100000, 125000, 150000};
+    vector<uint32_t> mems;//{2000, 4000, 8000, 16000};//{5000, 50000, 75000, 100000, 125000, 150000};
+    for (int i = 0; i < 9;i++){
+        mems.push_back(1000 * pow(2, i-1));
+        cout << mems[i] <<" ";
+    }
+    // cout << endl;
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
+        unordered_map<string, vector<double>> acc;
+
         for(auto tmpmem : mems){
-            cout << "memory: " << tmpmem << "   ";
+            // cout << "memory: " << tmpmem << endl;
         
             ifstream ifile_truth("../../get_groundtruth/SuperChanges/" + dataset + ".txt");
             
             string filename = to_string(tmpmem) + "_" + dataset;
-            // ifstream ifile_esti("../../DCSketch/output/SuperChanges/"+ dataset+ "/" + filename + ".txt"); 
-            ifstream ifile_esti("../../CDS/output/SuperChanges/"+dataset+"/" + filename + ".txt");
+            ifstream ifile_esti("../../DCSketch/output/SuperChanges/"+ dataset+ "/" + filename + ".txt"); 
+            // ifstream ifile_esti("../../CDS/output/SuperChanges/"+dataset+"/" + filename + ".txt");
 
             if(!ifile_truth || !ifile_esti){
                 cout<<"unable to open file"<<endl;
@@ -196,7 +203,19 @@ int main() {
             else
                 F1_Score = 2 * prec * recall / (prec + recall);
             double rel_error = get_error(superchanges_esti, superchanges);
-            cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+            // cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+            acc["precisions"].push_back(prec);
+            acc["recalls"].push_back(recall);
+            acc["f1scores"].push_back(F1_Score);
+            acc["errors"].push_back(rel_error);
+        }
+
+        for (auto metric : acc){
+            cout << metric.first << ": ";
+            for (double val : metric.second){
+                cout << val << " ";
+            }
+            cout << endl;
         }
     }
 #endif
@@ -246,22 +265,27 @@ int main() {
     thresholds["CAIDA"] = {8000, 3400, 1800};
     thresholds["KAGGLE"] = {1000};
 
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
 
-    uint32_t mem(1000);
-    vector<double> cm_ratios{0, 0.1, 0.2, 0.3};  //0.05, 0.1, 0.15, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
+    uint32_t mem(30000);
+    vector<uint32_t> cm_mems;
+    for (size_t i = 1;i < 13;i++){
+        cm_mems.push_back(i * 50);
+    }
 
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
-        for(auto cm_ratio : cm_ratios){
-            cout << "cm_ratio: " << cm_ratio << "   ";
+        unordered_map<string, vector<double>> acc;
+
+        for(uint32_t cm_mem : cm_mems){
+            cout << "CarMon memory: " << cm_mem << endl;
             string filename = datasets[dataset][0];
             ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
 
-            string esti_filename = to_string(mem)+ "_" + to_string(cm_ratio).substr(0,4) + "_" + filename;
+            string esti_filename = to_string(mem)+ "_" + to_string(cm_mem).substr(0,4) + "_" + filename;
             // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
-            ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
-            // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
+            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + esti_filename + ".txt");  
+            ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + esti_filename + ".txt"); 
             // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + esti_filename + ".txt");
 
@@ -278,7 +302,7 @@ int main() {
                     superspreaders.push_back(IdSpread(flowid,true_spread));
             }
             vector<IdSpread> superspreaders_esti;
-            double tuned_threshold = threshold;// * (1 - 0.4 * 0.1856);
+            double tuned_threshold = threshold;
             while(!ifile_esti.eof()){
                 string flowid;
                 uint32_t esti_spread;
@@ -298,7 +322,18 @@ int main() {
             else
                 F1_Score = 2 * prec * recall / (prec + recall);
             double rel_error = get_error(superspreaders_esti, superspreaders);
-            cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+            // cout<<"Precision: "<<prec<<"   Recall: "<<recall <<"   F1_Score: "<<F1_Score << "   Error: " << rel_error << endl;
+            acc["precisions"].push_back(prec);
+            acc["recalls"].push_back(recall);
+            acc["f1scores"].push_back(F1_Score);
+            acc["errors"].push_back(rel_error);
+        }
+        for (auto metric : acc){
+            cout << metric.first << ": ";
+            for (double val : metric.second){
+                cout << val << " ";
+            }
+            cout << endl;
         }
     }
 #endif

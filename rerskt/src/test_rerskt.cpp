@@ -13,9 +13,10 @@
 // template<class Estimator>
 // void write_res(string dataset,string filename, RerSkt<Estimator>& rersketch, uint32_t tmpmem, double cmratio);
 int main() {
-    RerSkt<Bitmap> rerskt_notuse(200, 0);
-    Get_Mem(rerskt_notuse);
-
+    RerSkt<Bitmap> not_used(200, 0);
+    
+    // Get_Mem(rerskt_notuse);
+    Test_task1(not_used, 0);
     // string dataset = "CAIDA_SUB";
     // uint32_t mem_base = 1000;
     // double expo = -1;

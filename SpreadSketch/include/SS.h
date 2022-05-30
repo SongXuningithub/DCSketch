@@ -53,7 +53,7 @@ public:
     SpreadSketch(uint32_t mem, double cmratio);
     void update(string flowid, string elementid);
     uint32_t query(string flowid);
-    void output_superspreaders(vector<IdSpread>& superspreaders);
+    void report_superspreaders(vector<IdSpread>& superspreaders);
 };
 
 #endif

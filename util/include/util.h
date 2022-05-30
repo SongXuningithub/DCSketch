@@ -162,6 +162,86 @@ string FILE_HANDLER::get_filename(){
 }
 
 template <class Framework>
+void Test_task1(Framework not_used, double CarMon_Layer1_ratio){
+    string dataset = "MAWI";
+    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    for(auto tmpmem : mems){
+        cout << "memory: " << tmpmem << endl;
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+            Framework sketch(tmpmem, CarMon_Layer1_ratio);
+            FILE_HANDLER filehandler(dataset, i);
+            string flowID, elemID;
+            clock_t startTime, endTime;
+
+            startTime = clock();
+            while(int status = filehandler.get_item(flowID, elemID)){
+                sketch.process_packet(flowID, elemID);
+                // if(filehandler.proc_num()%1000000 == 0)
+                //     cout<<"process packet "<<filehandler.proc_num()<<endl;
+            }
+            endTime = clock();
+            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+        }   
+    }
+}
+
+void write_superspreaders(string dataset, string ofile_path, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem);
+
+template <class Framework>
+void Test_task2(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
+    vector<string> datasets{"MAWI", "CAIDA"};
+    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    for (string dataset : datasets){
+        for(auto tmpmem : mems){
+            cout << "memory: " << tmpmem << endl;
+            uint32_t filenum = 1;
+            for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+                Framework sketch(tmpmem, CarMon_Layer1_ratio);
+                FILE_HANDLER filehandler(dataset, i);
+                string flowID, elemID;
+                clock_t startTime, endTime;
+
+                startTime = clock();
+                while(int status = filehandler.get_item(flowID, elemID)){
+                    sketch.process_packet(flowID, elemID);
+                    // if(filehandler.proc_num()%1000000 == 0)
+                    //     cout<<"process packet "<<filehandler.proc_num()<<endl;
+                }
+                endTime = clock();
+                cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+
+                vector<IdSpread> superspreaders;
+                startTime = clock();
+                sketch.report_superspreaders(superspreaders);
+                endTime = clock();
+                cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+                write_superspreaders(dataset, ofile_path, filehandler.get_filename(), superspreaders, tmpmem);
+            }   
+        }
+    }
+}
+
+void write_superspreaders(string dataset, string ofile_path, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem){
+    ofstream ofile_hand;
+    ofile_path = ofile_path + "/" + dataset + "/";
+    ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" +  filename + ".txt");
+    if(!ofile_hand){
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    bool first_line = true;
+    for(auto item : superspreaders){
+        if(first_line)
+            first_line = false;
+        else
+            ofile_hand << endl;
+        ofile_hand << item.flowID << " " << item.spread;
+    }
+    ofile_hand.close();
+}
+
+template <class Framework>
 void Get_Mem(Framework not_use){
     string dataset = "CAIDA_SUB";
     uint32_t mem_base = 1000;
@@ -195,7 +275,7 @@ void Get_Mem(Framework not_use){
             }
             endTime = clock();
             // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            bool achieve = write_res(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.5);
+            bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.5);
             if (achieve){
                 expos[i] = expo;
                 cout << i << " " << expo << endl;
@@ -213,48 +293,34 @@ void Get_Mem(Framework not_use){
 }
 
 template <class Framework>  
-bool write_res(string dataset, string filename, Framework& sketch, uint32_t tmpmem, double cmratio, double acc_requirement){
+bool Check_Acc(string dataset, string filename, Framework& sketch, uint32_t tmpmem, double cmratio, double acc_requirement){
     string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
-    string ofile_path = "../../rerskt/output/" + dataset + "/";
     ifstream ifile_hand;
-    // ofstream ofile_hand;
 
     ifile_hand = ifstream(ifile_path + filename + ".txt");
-    // ofile_hand = ofstream(ofile_path + to_string(tmpmem) + "_" + filename + ".txt");
-    // ofile_hand = ofstream(ofile_path + to_string(tmpmem)+ "_" + to_string(cmratio).substr(0,4) + "_" + filename + ".txt");
-    if(!ifile_hand){  //|| !ofile_hand
+    if(!ifile_hand){ 
         cout<<"fail to open files."<<endl;
         return false;
     }
     clock_t startTime,endTime;
     startTime = clock();
     bool first_line = true;
-    /*calculate accuracy*/
     double relat_error = 0;
     double num = 0;
-    /*------------------*/
+
     while(!ifile_hand.eof()){
-        // if(first_line)
-        //     first_line = false;
-        // else 
-        //     ofile_hand << endl;
         string flowid;
         int spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
         int estimated_spread = sketch.get_flow_spread(flowid);
-        // ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
-        /*calculate accuracy*/
         relat_error += fabs((double)spread - estimated_spread)/spread;
         num++;
     }
     endTime = clock();
-    // cout << "The query time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     ifile_hand.close();
-    // ofile_hand.close();
 
     double ARE = relat_error/num;
-    // cout<<tmpmem<<" "<<ARE<<endl;
     if(ARE <= acc_requirement)
         return true;
     else
