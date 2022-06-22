@@ -11,9 +11,9 @@
 #include <unistd.h>
 using std::unique_ptr;
 
-// #define OUTPUT_PERFLOW_SPREAD 1
+#define OUTPUT_PERFLOW_SPREAD 1
 // #define OUTPUT_SUPER_SPREADERS 1
-#define OUTPUT_SUPER_CHANGES 1
+// #define OUTPUT_SUPER_CHANGES 1
 
 void write_perflow_spread(string dataset,string filename,DCSketch& dcsketch,uint32_t tmpmem);
 void write_real_distribution(string dataset,string filename,DCSketch& dcsketch);
@@ -29,10 +29,11 @@ int main()
 #ifndef OUTPUT_SUPER_CHANGES
     DCSketch not_used(300, 0.6);
     
-    // Test_task1(not_used, 0.6);
+    string ofile_path = "../../DCSketch/output/PerFlowSpread";
+    Test_task1(not_used, ofile_path, 0.6);
 
-    string ofile_path = "../../DCSketch/output/SuperSpreaders";
-    Test_task2(not_used, ofile_path, 0.6);
+    // string ofile_path = "../../DCSketch/output/SuperSpreaders";
+    // Test_task2(not_used, ofile_path, 0.6);
     // string dataset = "CAIDA";
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // // vector<uint32_t> mems{500, 1000, 1500, 2000};

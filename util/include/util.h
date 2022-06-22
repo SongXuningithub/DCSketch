@@ -112,6 +112,8 @@ FILE_HANDLER::FILE_HANDLER(string dataset, uint32_t file_idx){
     datasets["KAGGLE"] = {"Unicauca"};
     datasets["FACEBOOK"] = {"page_page"};
     datasets["TWITTER"] = {"twitter_combined", "higgs-social_network"};
+    datasets["ZIPF"] = {"zipf_0.9", "zipf_1.1", "zipf_1.3"};
+
     this->dataset = dataset;
 
     for (size_t i = 8;i < 19;i++){
@@ -124,7 +126,7 @@ FILE_HANDLER::FILE_HANDLER(string dataset, uint32_t file_idx){
     }
     filename = datasets[dataset][file_idx];
 
-    if (dataset == "FACEBOOK" || dataset == "CAIDA_SUB"){
+    if (dataset == "FACEBOOK" || dataset == "CAIDA_SUB" || dataset == "ZIPF"){
         txt_handler = new TXT_Handler(data_path, dataset, datasets[dataset][file_idx]);
     } else {
         if (dataset == "KAGGLE")
@@ -132,12 +134,12 @@ FILE_HANDLER::FILE_HANDLER(string dataset, uint32_t file_idx){
         else
             pcap_handler = new PCAP_SESSION(data_path, dataset, datasets[dataset][file_idx], PCAP_FILE);
     }
-
+    cout << this->get_filename() << endl;
 }
 
 int FILE_HANDLER::get_item(string& flowID, string& elemID){
     int status;
-    if (dataset == "FACEBOOK" || dataset == "CAIDA_SUB"){
+    if (dataset == "FACEBOOK" || dataset == "CAIDA_SUB" || dataset == "ZIPF"){
         status = txt_handler->get_packet(flowID, elemID);
     } else {
         IP_PACKET cur_packet;
@@ -162,12 +164,15 @@ string FILE_HANDLER::get_filename(){
 }
 
 template <class Framework>
-void Test_task1(Framework not_used, double CarMon_Layer1_ratio){
-    string dataset = "MAWI";
+void write_perflow_spread(string dataset, string filename, string ofile_path, Framework& sketch, uint32_t tmpmem);
+
+template <class Framework>
+void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
+    string dataset = "ZIPF";
     vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        uint32_t filenum = 1;
+        uint32_t filenum = 3;
         for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
             Framework sketch(tmpmem, CarMon_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
@@ -182,8 +187,42 @@ void Test_task1(Framework not_used, double CarMon_Layer1_ratio){
             }
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            write_perflow_spread(dataset, filehandler.get_filename(), ofile_path, sketch, tmpmem);
         }   
     }
+}
+
+template <class Framework>
+void write_perflow_spread(string dataset, string filename, string ofile_path, Framework& sketch, uint32_t tmpmem){
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    ifstream ifile_hand;
+    ofstream ofile_hand;
+    ifile_hand = ifstream(ifile_path + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + "/" + to_string(tmpmem) + "_" + filename + ".txt");
+       
+    if(!ifile_hand || !ofile_hand){
+        cout<<"fail to open files."<<endl;
+        return;
+    }
+    // clock_t startTime,endTime;
+    // startTime = clock();
+    bool first_line = true;
+    while(!ifile_hand.eof()){
+        if(first_line)
+            first_line = false;
+        else 
+            ofile_hand << endl;
+        string flowid;
+        uint32_t spread;
+        ifile_hand >> flowid;
+        ifile_hand >> spread;
+        uint32_t estimated_spread = sketch.get_flow_spread(flowid);
+        ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
+    }
+    // endTime = clock();
+    // cout << "The query time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+    ifile_hand.close();
+    ofile_hand.close();
 }
 
 void write_superspreaders(string dataset, string ofile_path, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem);
