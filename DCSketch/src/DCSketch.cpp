@@ -15,7 +15,7 @@ namespace metadata{
 
 Bitmap_Arr::Bitmap_Arr(uint32_t memory_): memory(memory_), bitmap_num(memory * 1024 * 8 / bitmap_size), raw(memory*1024*8/32) {
     for(size_t i = 0;i < raw.size();i++) raw[i] = 0;
-    for(size_t i = 0;i < bitmap_size;i++) patterns[i] = 1 << (bitmap_size - i - 1);
+    for(size_t i = 0;i < bitmap_size;i++) patterns[i] = 1 << i;
     
     double ln_bmsize = log(bitmap_size);
     double ln_bmsize_minu1 = log(bitmap_size - 1);

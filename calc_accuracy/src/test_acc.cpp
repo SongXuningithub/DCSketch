@@ -33,7 +33,7 @@ int main() {
     }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "MAWI";
+    string dataset = "CAIDA";
     string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
@@ -45,8 +45,8 @@ int main() {
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
-        uint32_t filenum = 1; //datasets[dataset].size();//
-        for (size_t i = 0;i < 2;i++){
+        uint32_t filenum = 2; //datasets[dataset].size();//
+        for (size_t i = 0;i < filenum;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
             if(!ifile){
