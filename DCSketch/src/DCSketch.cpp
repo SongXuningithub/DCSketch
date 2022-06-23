@@ -232,8 +232,8 @@ int HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t 
         if(V_ > 0)
             res_2 = register_num * log(register_num / (double)V_);
     
-    // double min_spread = min(res_1, res_2);
-    double min_spread = (res_1 + res_2) / 2;
+    double min_spread = min(res_1, res_2);
+    // double min_spread = (res_1 + res_2) / 2;
     int ans = round((min_spread - error_) * 2);
     if (ans < 0)
         return 0;
@@ -403,7 +403,42 @@ void DCSketch::get_global_info() {
 }
 #endif
 
+void DCSketch::update_collision_rate() {
+    double empty_cells = 0;
+    double total_cells = layer1.bitmap_num;
+    for (size_t i = 0;i < total_cells;i++) {
+        uint32_t tmp_bm = layer1.get_bitmap(i);
+        if (tmp_bm == 0) {
+            empty_cells++;
+        }
+    }
+    double fragments = - total_cells * log(empty_cells / total_cells);
+    collision_rate_1 = 1 - exp(-2 * fragments / total_cells);
+    
+    empty_cells = 0;
+    total_cells = layer2.HLL_num;
+    for (size_t i = 0;i < total_cells;i++) {
+        bool empty_flag = true;
+        for (size_t j = 0;j < layer2.HLL_size;j++) {
+            uint32_t tmp_val = layer2.get_counter_val(i, j);
+            if (tmp_val != 0) {
+                empty_flag = false;
+                break;
+            }
+        }
+        if (empty_flag) {
+            empty_cells++;
+        }
+    }
+    fragments = - total_cells * log(empty_cells / total_cells);
+    collision_rate_2 = 1 - exp(-2 * fragments / total_cells);
+    cout << "collision_rate_1: " << collision_rate_1 << "  collision_rate_2: " << collision_rate_2 << endl;
+}
+
 uint32_t DCSketch::get_flow_spread(string flowid){
+    if (collision_rate_1 == 0) {
+        update_collision_rate();
+    }
     array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     int spread_layer1 = layer1.get_spread(flowid, hash_flowid, 0);  //
     int ret;

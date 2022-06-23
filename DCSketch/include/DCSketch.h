@@ -77,7 +77,7 @@ public:
     uint32_t memory; //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
-    static const uint32_t register_num = 64;
+    static const uint32_t register_num = 32;
     static const uint32_t register_size = 4;
     static const uint32_t HLL_size = register_num * register_size;
     uint32_t HLL_num;
@@ -143,6 +143,7 @@ class DCSketch{
 public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
+    
 #ifdef GLOBAL_HLL
     Global_HLLs global_hlls;
     int layer1_flows, layer2_flows, layer1_elements, layer2_elements;
@@ -154,10 +155,15 @@ public:
     uint32_t process_packet(string flowid,string element);
     uint32_t get_flow_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
+    void update_collision_rate();
 #ifdef GLOBAL_HLL
     void get_global_info();
     array<double,2> GetLoadFactor();
 #endif
+private:
+    double collision_rate_1 = 0;
+    double collision_rate_2 = 0;
+    double collision_thresh = 0.05;
 };
 
 

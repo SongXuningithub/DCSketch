@@ -27,13 +27,14 @@ int main()
     // Get_Mem(dcsketch_notuse);
 
 #ifndef OUTPUT_SUPER_CHANGES
-    DCSketch not_used(300, 0.6);
+    DCSketch not_used(300, 0.7);
     
     string ofile_path = "../../DCSketch/output/PerFlowSpread";
     Test_task1(not_used, ofile_path, 0.6);
 
     // string ofile_path = "../../DCSketch/output/SuperSpreaders";
     // Test_task2(not_used, ofile_path, 0.6);
+
     // string dataset = "CAIDA";
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
     // // vector<uint32_t> mems{500, 1000, 1500, 2000};
@@ -44,14 +45,12 @@ int main()
     //     for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
     //         DCSketch dcsketch(tmpmem, 0.6);
     //         FILE_HANDLER filehandler(dataset, i);
-
     //         string flowID, elemID;
     //         clock_t startTime,endTime;
     //         startTime = clock();
     //         // set<pair<string,string>> layer1_items;
     //         // set<pair<string,string>> layer2_items;
     //         // set<string> layer2_flows;
-
     //         while(int status = filehandler.get_item(flowID, elemID)){
     //             dcsketch.process_element(flowID, elemID);
     //             if(filehandler.proc_num()%1000000 == 0)
@@ -62,14 +61,12 @@ int main()
     //         //     inserter(inter_items, inter_items.begin()));
     //         // cout << "inter_items: " << inter_items.size() << " layer2_flows: " << layer2_flows.size() << " average " <<
     //         // static_cast<double>(inter_items.size()) / layer2_flows.size()  <<endl;
-
     //         endTime = clock();
     //         cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
     //         dcsketch.get_global_info();
     //     #ifdef OUTPUT_PERFLOW_SPREAD
     //         write_perflow_spread(dataset, filehandler.get_filename(), dcsketch, tmpmem);
     //     #endif
-        
     //     #ifdef OUTPUT_SUPER_SPREADERS
     //         vector<IdSpread> superspreaders;
     //         startTime = clock();

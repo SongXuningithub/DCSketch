@@ -168,12 +168,12 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
 
 template <class Framework>
 void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
-    string dataset = "ZIPF";
+    string dataset = "CAIDA";
     vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        uint32_t filenum = 3;
-        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < 1; i++){  //datasets[dataset].size()
             Framework sketch(tmpmem, CarMon_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
@@ -198,7 +198,7 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
     ifstream ifile_hand;
     ofstream ofile_hand;
     ifile_hand = ifstream(ifile_path + filename + ".txt");
-    ofile_hand = ofstream(ofile_path + "/" + to_string(tmpmem) + "_" + filename + ".txt");
+    ofile_hand = ofstream(ofile_path + "/" + dataset + "/" + to_string(tmpmem) + "_" + filename + ".txt");
        
     if(!ifile_hand || !ofile_hand){
         cout<<"fail to open files."<<endl;
@@ -230,7 +230,7 @@ void write_superspreaders(string dataset, string ofile_path, string filename, ve
 template <class Framework>
 void Test_task2(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
     vector<string> datasets{"MAWI", "CAIDA"};
-    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    vector<uint32_t> mems{500,  1000, 1500, 2000}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for (string dataset : datasets){
         for(auto tmpmem : mems){
             cout << "memory: " << tmpmem << endl;

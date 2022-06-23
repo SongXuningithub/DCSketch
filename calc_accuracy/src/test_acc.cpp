@@ -11,11 +11,11 @@
 #include "util.h"
 using namespace std;
 
-// #define TEST_PERFLOW_ACC 1
+#define TEST_PERFLOW_ACC 1
 // #define TEST_CARMON_PLUS_PRIOR_TASK1
 // #define TEST_SUPERSPREADER_ACC 1
 // #define TEST_CARMON_PLUS_PRIOR_TASK2
-#define TEST_SUPERCHANGES_ACC 1
+// #define TEST_SUPERCHANGES_ACC 1
 
 double get_precision(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
 double get_recall(vector<IdSpread>& esti_set, vector<IdSpread>& truth_set);
@@ -27,25 +27,26 @@ int main() {
     datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
     datasets["KAGGLE"] = {"Unicauca"};
     datasets["FACEBOOK"] = {"page_page"};
+    datasets["ZIPF"] = {"zipf_0.9", "zipf_1.1", "zipf_1.3"};
     for (size_t i = 8;i < 19;i++){
         datasets["CAIDA_SUB"].push_back(to_string(i));
     }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "FACEBOOK";
-    // string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
-    string filepath = "../../vHLL/output/" + dataset + "/";
+    string dataset = "CAIDA";
+    string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
+    // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
-    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
+    vector<uint32_t> mems{1000};  //500, 750, 1000, 1250, 1500, 1750, 2000
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
     // vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
-        uint32_t filenum = datasets[dataset].size();//
-        for (size_t i = 0;i < filenum;i++){
+        uint32_t filenum = 1; //datasets[dataset].size();//
+        for (size_t i = 0;i < 1;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
             if(!ifile){
@@ -60,6 +61,8 @@ int main() {
                 int true_spread;
                 int estimated_spread;
                 ifile >> flowid >> true_spread >> estimated_spread;
+                if (true_spread == 0)
+                    continue;
                 relat_error += fabs((double)true_spread - estimated_spread)/true_spread;
                 abs_error += fabs((double)true_spread - estimated_spread);
                 num++;
@@ -69,9 +72,8 @@ int main() {
             ARE_sum += ARE;
             AAE_sum += AAE;
             // cout<<datasets[dataset][i]<<endl;
-            cout << ARE << " ";
-            // cout<<"ARE: "<<ARE<<endl;
-            // cout<<"AAE: "<<AAE<<endl;
+            cout << "ARE: " << ARE << " ";
+            cout << "AAE: " << AAE << " ";
         }
         // cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
         // cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
@@ -98,8 +100,8 @@ int main() {
             ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
             
             filename = to_string(tmpmem) + "_" + filename;
-            ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
-            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
+            // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
+            ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
             // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + filename + ".txt");

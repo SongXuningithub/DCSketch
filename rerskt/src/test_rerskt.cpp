@@ -16,7 +16,8 @@ int main() {
     RerSkt<Bitmap> not_used(200, 0);
     
     // Get_Mem(rerskt_notuse);
-    Test_task1(not_used, 0);
+    string ofile_path = "../../rerskt/output";
+    Test_task1(not_used, ofile_path, 0);
     // string dataset = "CAIDA_SUB";
     // uint32_t mem_base = 1000;
     // double expo = -1;
