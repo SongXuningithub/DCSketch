@@ -33,20 +33,20 @@ int main() {
     }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "CAIDA";
+    string dataset = "MAWI";
     string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
     // string filepath = "../../bSkt/output/" + dataset + "/";
 
-    vector<uint32_t> mems{1000};  //500, 750, 1000, 1250, 1500, 1750, 2000
+    vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};  //500, 750, 1000, 1250, 1500, 1750, 2000
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
     // vector<uint32_t> mems{2000};
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
         uint32_t filenum = 1; //datasets[dataset].size();//
-        for (size_t i = 0;i < 1;i++){
+        for (size_t i = 0;i < 2;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
             if(!ifile){
@@ -72,11 +72,11 @@ int main() {
             ARE_sum += ARE;
             AAE_sum += AAE;
             // cout<<datasets[dataset][i]<<endl;
-            cout << "ARE: " << ARE << " ";
-            cout << "AAE: " << AAE << " ";
+            // cout << "ARE: " << ARE << " ";
+            // cout << "AAE: " << AAE << " ";
         }
-        // cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
-        // cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
+        cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
+        cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
     }
     cout<<endl;
 #endif

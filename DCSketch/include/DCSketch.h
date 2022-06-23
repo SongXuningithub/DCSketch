@@ -77,7 +77,7 @@ public:
     uint32_t memory; //kB
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
-    static const uint32_t register_num = 32;
+    static const uint32_t register_num = 64;
     static const uint32_t register_size = 4;
     static const uint32_t HLL_size = register_num * register_size;
     uint32_t HLL_num;

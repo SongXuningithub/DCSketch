@@ -33,14 +33,23 @@ uint32_t Bitmap_Arr::get_bitmap(uint32_t bitmap_pos){
     bits_bias = bitmap_pos * bitmap_size;
     uint32_pos =  bits_bias / 32;
     inner_bias = bits_bias % 32;
-    shift_ = 31 - (inner_bias + bitmap_size - 1);
+    uint32_t end_bit_idx = inner_bias + bitmap_size - 1;
     uint32_t res;
-    if(shift_ >= 0)  
-        // res = static_cast<uint16_t>(raw[uint32_pos] >> shift_);
-        res = raw[uint32_pos] >> shift_;
-    else
-        // res = static_cast<uint16_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
-        res = (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_));
+    if (end_bit_idx < 32) {
+        res = raw[uint32_pos] >> inner_bias;
+    } else {
+        res = (raw[uint32_pos + 1] << (32 - inner_bias)) + (raw[uint32_pos] >> inner_bias);
+    }
+
+    // shift_ = 31 - (inner_bias + bitmap_size - 1);
+    // uint32_t res;
+    // if(shift_ >= 0)  
+    //     // res = static_cast<uint16_t>(raw[uint32_pos] >> shift_);
+    //     res = raw[uint32_pos] >> shift_;
+    // else
+    //     // res = static_cast<uint16_t>( (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_)) );
+    //     res = (raw[uint32_pos] << (-shift_)) + (raw[uint32_pos + 1] >> (32 + shift_));
+    
     res &= FULL_PAT;
     return res;
 }
@@ -85,11 +94,17 @@ bool Bitmap_Arr::set_bit(uint32_t bit_pos){
     using namespace metadata;
     uint32_t temp = inner_bias + bit_pos;
     if(temp <= 31)
-        raw[uint32_pos] |= 1<<(31-temp); 
+        raw[uint32_pos] |= (1<<temp); 
     else{
         temp -= 32;
-        raw[uint32_pos + 1] |= 1<<(31-temp); 
+        raw[uint32_pos + 1] |= (1<<temp); 
     }
+    // if(temp <= 31)
+    //     raw[uint32_pos] |= 1<<(31-temp); 
+    // else{
+    //     temp -= 32;
+    //     raw[uint32_pos + 1] |= 1<<(31-temp); 
+    // }
     return false;
 }
 
