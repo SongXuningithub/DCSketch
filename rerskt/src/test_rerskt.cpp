@@ -13,7 +13,7 @@
 // template<class Estimator>
 // void write_res(string dataset,string filename, RerSkt<Estimator>& rersketch, uint32_t tmpmem, double cmratio);
 int main() {
-    RerSkt<Bitmap> not_used(200, 0);
+    RerSkt<HLL> not_used(200, 0);
     
     // Get_Mem(rerskt_notuse);
     string ofile_path = "../../rerskt/output";

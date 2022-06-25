@@ -30,7 +30,7 @@ int main()
     DCSketch not_used(300, 0.7);
     
     string ofile_path = "../../DCSketch/output/PerFlowSpread";
-    Test_task1(not_used, ofile_path, 0.6);
+    Test_task1(not_used, ofile_path, 0.675);
 
     // string ofile_path = "../../DCSketch/output/SuperSpreaders";
     // Test_task2(not_used, ofile_path, 0.6);

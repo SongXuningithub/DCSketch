@@ -214,6 +214,23 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
     }
 }
 
+int HLL_Arr::get_cardinality(uint32_t HLL_pos) {
+    double res;
+    double sum_ = 0;
+    uint32_t V_ = 0;
+    for(size_t i = 0;i < register_num;i++){
+        uint32_t tmpval = get_counter_val(HLL_pos,i);
+        sum_ += exp_table[tmpval];
+        if(tmpval == 0)
+            V_++;
+    }
+    res = alpha_m_sqm / sum_;
+    if(res <= LC_thresh)
+        if(V_ > 0)
+            res = register_num * log(register_num / (double)V_);
+    return round(res);
+}
+
 int HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_) {
     array<uint32_t,2> HLL_pos;
     HLL_pos[0] = static_cast<uint32_t>(hash_flowid[1] >> 32) % HLL_num;
@@ -418,23 +435,36 @@ void DCSketch::get_global_info() {
 }
 #endif
 
+uint32_t get_set_bits(uint32_t bmsize, uint32_t bm){
+    uint32_t res = 0;
+    for (size_t i = 0;i < bmsize;i++) {
+        res += (bm >> i) & 1;
+    }
+    return res;
+} 
+
 void DCSketch::update_collision_rate() {
+    double load_factor_1, load_factor_2 = 0;
     double empty_cells = 0;
     double total_cells = layer1.bitmap_num;
+    vector<uint32_t> bm_distribution(layer1.bitmap_size + 1);
     for (size_t i = 0;i < total_cells;i++) {
         uint32_t tmp_bm = layer1.get_bitmap(i);
         if (tmp_bm == 0) {
             empty_cells++;
         }
+        bm_distribution[get_set_bits(layer1.bitmap_size, tmp_bm)]++;
     }
     double fragments = - total_cells * log(empty_cells / total_cells);
     collision_rate_1 = 1 - exp(-2 * fragments / total_cells);
-    
+    load_factor_1 = (total_cells - empty_cells) / total_cells;
+
     empty_cells = 0;
     total_cells = layer2.HLL_num;
+    vector<uint32_t> hll_distribution(30);
     for (size_t i = 0;i < total_cells;i++) {
         bool empty_flag = true;
-        for (size_t j = 0;j < layer2.HLL_size;j++) {
+        for (size_t j = 0;j < layer2.register_num;j++) {
             uint32_t tmp_val = layer2.get_counter_val(i, j);
             if (tmp_val != 0) {
                 empty_flag = false;
@@ -444,10 +474,45 @@ void DCSketch::update_collision_rate() {
         if (empty_flag) {
             empty_cells++;
         }
+
+        double tmp_card = layer2.get_cardinality(i);
+        uint32_t pos;
+        if (tmp_card > 0) {
+            pos = static_cast<uint32_t>(floor(log2(tmp_card))) + 1;
+        } else {
+            pos = 0;
+        }
+        hll_distribution[pos]++;
     }
     fragments = - total_cells * log(empty_cells / total_cells);
     collision_rate_2 = 1 - exp(-2 * fragments / total_cells);
-    cout << "collision_rate_1: " << collision_rate_1 << "  collision_rate_2: " << collision_rate_2 << endl;
+    load_factor_2 = (total_cells - empty_cells) / total_cells;
+    
+    cout << "virtual estimtor collision rate 1: " << collision_rate_1 << "  virtual estimtor collision rate 2: " << collision_rate_2 << endl;
+    cout << "load_factor_1: " << load_factor_1 << "  load_factor_2: " << load_factor_2 << endl;
+    
+    // cout << "bitmap distribution: ";
+    // for (auto val : bm_distribution) {
+    //     cout << val << ", ";
+    // }
+    // cout<<endl;
+    // cout << (bm_distribution[bm_distribution.size()-1] + bm_distribution[bm_distribution.size()-2]) / (double)layer1.bitmap_num << endl;
+    cout << "hll value distribution: \n0: " <<hll_distribution[0] <<"  ";
+    uint32_t large_flow_num = 0;
+    for (size_t i = 1;i < hll_distribution.size();i++) {
+        if (hll_distribution[i]==0)
+            continue;
+        // cout << pow(2.0,i-1.0) << ":" <<hll_distribution[i] << "  ";
+        if (pow(2.0,i-1.0) > 128)
+            large_flow_num += hll_distribution[i];
+    }
+    cout<<endl;
+    
+    // large_flow_num /= 2;
+    // cout << "large_flow_num: " << large_flow_num << endl;
+    double G1 = layer1.bitmap_num * (log(1/(1-load_factor_1))-load_factor_1);
+    double G2 = layer2.HLL_num * (log(layer2.HLL_num/(double)hll_distribution[0])-load_factor_2);
+    cout << "G1: " << G1 << "  G2: " << G2 << endl;
 }
 
 uint32_t DCSketch::get_flow_spread(string flowid){

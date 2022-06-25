@@ -47,7 +47,7 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
 class Bitmap_Arr{
 public:
     uint32_t memory;// = memory_size * 3 / 5;      //kB
-    static const uint32_t bitmap_size = 6;      //bits
+    static const uint32_t bitmap_size = 5;      //bits
     uint32_t bitmap_num;
     vector<uint32_t> raw;  
     array<uint32_t, bitmap_size> patterns;
@@ -92,6 +92,7 @@ public:
     void set_counter_val(uint32_t HLL_pos,uint32_t bucket_pos,uint32_t val_);
     void process_packet(string flowid, array<uint64_t,2>& hash_flowid, array<uint64_t,2>& hash_element);
     int get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t error_);
+    int get_cardinality(uint32_t HLL_pos);
 
     class Table_Entry{
     public:
