@@ -42,6 +42,12 @@ int main() {
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};  //500, 750, 1000, 1250, 1500, 1750, 2000
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
     vector<uint32_t> mems{1000};
+    // vector<double> layer1_ratios{0.6}; //0.5, 0.55, 0.6, 0.65, 0.7, 0.75
+    // for (size_t i = 0;i < layer1_ratios.size();i++){
+    //     mems.push_back(layer1_ratios[i] * 1000);
+    // }
+    vector<double> AREs;
+    vector<double> AAEs;
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
@@ -72,13 +78,25 @@ int main() {
             ARE_sum += ARE;
             AAE_sum += AAE;
             // cout<<datasets[dataset][i]<<endl;
-            cout << "ARE: " << ARE << " ";
-            cout << "AAE: " << AAE << " ";
+            // cout << "ARE: " << ARE << " ";
+            // cout << "AAE: " << AAE << " ";
+            // cout << ARE << " ";
+            // cout  << AAE << " ";
+            AREs.push_back(ARE);
+            AAEs.push_back(AAE);
         }
         // cout << tmpmem << " : average_ARE: " << ARE_sum/filenum << endl;
         // cout << tmpmem << " : average_AAE: " << AAE_sum/filenum << endl;
     }
+    // cout<<endl;
+    for(auto x : AREs)
+        cout << x <<" ";
     cout<<endl;
+    for(auto x : AAEs)
+        cout << x <<" ";
+    cout<<endl;
+
+
 #endif
 
 #ifdef TEST_SUPERSPREADER_ACC

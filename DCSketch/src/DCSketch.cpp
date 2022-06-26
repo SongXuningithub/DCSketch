@@ -491,18 +491,18 @@ void DCSketch::update_collision_rate() {
     cout << "virtual estimtor collision rate 1: " << collision_rate_1 << "  virtual estimtor collision rate 2: " << collision_rate_2 << endl;
     cout << "load_factor_1: " << load_factor_1 << "  load_factor_2: " << load_factor_2 << endl;
     
-    // cout << "bitmap distribution: ";
-    // for (auto val : bm_distribution) {
-    //     cout << val << ", ";
-    // }
-    // cout<<endl;
-    // cout << (bm_distribution[bm_distribution.size()-1] + bm_distribution[bm_distribution.size()-2]) / (double)layer1.bitmap_num << endl;
+    cout << "bitmap distribution: ";
+    for (auto val : bm_distribution) {
+        cout << val << ", ";
+    }
+    cout<<endl;
+    cout << (bm_distribution[bm_distribution.size()-1] + bm_distribution[bm_distribution.size()-2]) / (double)layer1.bitmap_num << endl;
     cout << "hll value distribution: \n0: " <<hll_distribution[0] <<"  ";
     uint32_t large_flow_num = 0;
     for (size_t i = 1;i < hll_distribution.size();i++) {
         if (hll_distribution[i]==0)
             continue;
-        // cout << pow(2.0,i-1.0) << ":" <<hll_distribution[i] << "  ";
+        cout << pow(2.0,i-1.0) << ":" <<hll_distribution[i] << "  ";
         if (pow(2.0,i-1.0) > 128)
             large_flow_num += hll_distribution[i];
     }
@@ -511,8 +511,11 @@ void DCSketch::update_collision_rate() {
     // large_flow_num /= 2;
     // cout << "large_flow_num: " << large_flow_num << endl;
     double G1 = layer1.bitmap_num * (log(1/(1-load_factor_1))-load_factor_1);
-    double G2 = layer2.HLL_num * (log(layer2.HLL_num/(double)hll_distribution[0])-load_factor_2);
-    cout << "G1: " << G1 << "  G2: " << G2 << endl;
+    double G2 = 5 * layer2.HLL_num * (log(layer2.HLL_num/(double)hll_distribution[0])-load_factor_2);
+    cout << "G1: " << G1 << "  G2: " << G2 << "  G1+G2: " << G1+G2 << endl;
+    ofstream ofile_hand = ofstream("../../DCSketch/output/MetaData/ZIPF/" + to_string(layer1.bitmap_size) + ".txt", ios::app);
+    ofile_hand << (G1+G2) << " ";
+    ofile_hand.close();
 }
 
 uint32_t DCSketch::get_flow_spread(string flowid){

@@ -30,7 +30,11 @@ int main()
     DCSketch not_used(300, 0.7);
     
     string ofile_path = "../../DCSketch/output/PerFlowSpread";
-    Test_task1(not_used, ofile_path, 0.675);
+    vector<double> layer1_ratios{0.65};  //0.5, 0.55, 0.6, 0.65, 0.7, 0.75
+    for (size_t i = 0;i < layer1_ratios.size();i++){
+        Test_task1(not_used, ofile_path, layer1_ratios[i]);
+    }
+    
 
     // string ofile_path = "../../DCSketch/output/SuperSpreaders";
     // Test_task2(not_used, ofile_path, 0.6);

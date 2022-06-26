@@ -47,7 +47,7 @@ Layer1:     A "special" sketch which consists of lots of small bitmaps(rather th
 class Bitmap_Arr{
 public:
     uint32_t memory;// = memory_size * 3 / 5;      //kB
-    static const uint32_t bitmap_size = 5;      //bits
+    static const uint32_t bitmap_size = 6;      //bits
     uint32_t bitmap_num;
     vector<uint32_t> raw;  
     array<uint32_t, bitmap_size> patterns;
@@ -144,7 +144,7 @@ class DCSketch{
 public:
     Bitmap_Arr layer1;
     HLL_Arr layer2;
-    
+    double layer1_ratio;
 #ifdef GLOBAL_HLL
     Global_HLLs global_hlls;
     int layer1_flows, layer2_flows, layer1_elements, layer2_elements;
@@ -152,7 +152,7 @@ public:
     array<uint32_t,2001> Error_RMV;
 #endif
 
-    DCSketch(uint32_t memory_size, double layer1_ratio);
+    DCSketch(uint32_t memory_size, double layer1_ratio_);
     uint32_t process_packet(string flowid,string element);
     uint32_t get_flow_spread(string flowid);
     void report_superspreaders(vector<IdSpread>& superspreaders);
@@ -168,8 +168,8 @@ private:
 };
 
 
-DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio): 
-layer1(memory_size * layer1_ratio), layer2(memory_size * (1 - layer1_ratio)){
+DCSketch::DCSketch(uint32_t memory_size, double layer1_ratio_): layer1_ratio(layer1_ratio_),
+layer1(memory_size * layer1_ratio_), layer2(memory_size * (1 - layer1_ratio_)){
 #ifdef GLOBAL_HLL
     string ifile_name = "../../DCSketch/support/error_removal.txt";
     ifstream ifile_hand;
