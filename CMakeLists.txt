@@ -4,7 +4,7 @@ project(DCSketch)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/mylibpcap)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/MurmurHash3)
-# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/get_groundtruth)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/get_groundtruth)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/DCSketch)
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/bSkt)
 # add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/rerskt)

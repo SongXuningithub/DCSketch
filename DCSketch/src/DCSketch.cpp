@@ -209,7 +209,8 @@ void HLL_Arr::process_packet(string flowid, array<uint64_t,2>& hash_flowid, arra
         if (bucket_pos < 256){
             reg_sums[update_pos] += rou_x - bucket_val;
             uint16_t min_reg_sum = min(reg_sums[HLL_pos_1], reg_sums[HLL_pos_2]);
-            insert_hashtab(flowid, min_reg_sum, hash_flowid[0]);
+            // insert_hashtab(flowid, min_reg_sum, hash_flowid[0]);
+            insert_hashtab_P4(flowid, min_reg_sum, hash_flowid[0]);
         }
     }
 }
@@ -270,6 +271,25 @@ int HLL_Arr::get_spread(string flowid, array<uint64_t,2>& hash_flowid, uint32_t 
     if (ans < 0)
         return 0;
     return ans;
+}
+
+void HLL_Arr::insert_hashtab_P4(string flowid, uint16_t min_reg_sum, uint64_t hahsres64){
+    uint32_t hashres32 = hahsres64 >> 32;         //high 32 bits of initial hash result which is 64 bits
+    uint32_t table_pos1 = (hashres32 >> 16) % tab_size;     //high 16 bits
+    uint32_t table_pos2 = (hashres32 & MAX_UINT16) % tab_size;  //low 16 bits
+
+    if(hash_table[table_pos1].flowid == "" || hash_table[table_pos1].flowid == flowid){
+        hash_table[table_pos1].flowid = flowid;
+        hash_table[table_pos1].min_reg_sum = min_reg_sum;
+        return;
+    }
+
+    uint16_t tmp1 = hash_table[table_pos1].min_reg_sum;
+    if(min_reg_sum >= tmp1){
+        hash_table[table_pos1].flowid = flowid;
+        hash_table[table_pos1].min_reg_sum = min_reg_sum;
+    }
+    
 }
 
 void HLL_Arr::insert_hashtab(string flowid, uint16_t min_reg_sum, uint64_t hahsres64){
@@ -488,34 +508,39 @@ void DCSketch::update_collision_rate() {
     collision_rate_2 = 1 - exp(-2 * fragments / total_cells);
     load_factor_2 = (total_cells - empty_cells) / total_cells;
     
-    cout << "virtual estimtor collision rate 1: " << collision_rate_1 << "  virtual estimtor collision rate 2: " << collision_rate_2 << endl;
-    cout << "load_factor_1: " << load_factor_1 << "  load_factor_2: " << load_factor_2 << endl;
+    // cout << "virtual estimtor collision rate 1: " << collision_rate_1 << "  virtual estimtor collision rate 2: " << collision_rate_2 << endl;
+    // cout << "load_factor_1: " << load_factor_1 << "  load_factor_2: " << load_factor_2 << endl;
     
-    cout << "bitmap distribution: ";
-    for (auto val : bm_distribution) {
-        cout << val << ", ";
-    }
-    cout<<endl;
-    cout << (bm_distribution[bm_distribution.size()-1] + bm_distribution[bm_distribution.size()-2]) / (double)layer1.bitmap_num << endl;
-    cout << "hll value distribution: \n0: " <<hll_distribution[0] <<"  ";
-    uint32_t large_flow_num = 0;
-    for (size_t i = 1;i < hll_distribution.size();i++) {
-        if (hll_distribution[i]==0)
-            continue;
-        cout << pow(2.0,i-1.0) << ":" <<hll_distribution[i] << "  ";
-        if (pow(2.0,i-1.0) > 128)
-            large_flow_num += hll_distribution[i];
-    }
-    cout<<endl;
+    // cout << "bitmap distribution: ";
+    // for (auto val : bm_distribution) {
+    //     cout << val << ", ";
+    // }
+    // cout<<endl;
+    // cout << (bm_distribution[bm_distribution.size()-1] + bm_distribution[bm_distribution.size()-2]) / (double)layer1.bitmap_num << endl;
+    // cout << "hll value distribution: \n0: " <<hll_distribution[0] <<"  ";
+    // uint32_t large_flow_num = 0;
+    // for (size_t i = 1;i < hll_distribution.size();i++) {
+    //     if (hll_distribution[i]==0)
+    //         continue;
+    //     cout << pow(2.0,i-1.0) << ":" <<hll_distribution[i] << "  ";
+    //     if (pow(2.0,i-1.0) > 128)
+    //         large_flow_num += hll_distribution[i];
+    // }
+    // cout<<endl;
     
     // large_flow_num /= 2;
     // cout << "large_flow_num: " << large_flow_num << endl;
     double G1 = layer1.bitmap_num * (log(1/(1-load_factor_1))-load_factor_1);
     double G2 = 5 * layer2.HLL_num * (log(layer2.HLL_num/(double)hll_distribution[0])-load_factor_2);
-    cout << "G1: " << G1 << "  G2: " << G2 << "  G1+G2: " << G1+G2 << endl;
-    ofstream ofile_hand = ofstream("../../DCSketch/output/MetaData/ZIPF/" + to_string(layer1.bitmap_size) + ".txt", ios::app);
+    // cout << "G1: " << G1 << "  G2: " << G2 << "  G1+G2: " << G1+G2 << endl;
+    cout << "LF: " << layer1_ratio << "  G1+G2: " << G1+G2 << endl;
+    ofstream ofile_hand = ofstream("../../DCSketch/output/MetaData/FACEBOOK/" + to_string(layer1.bitmap_size) + ".txt", ios::app);
     ofile_hand << (G1+G2) << " ";
     ofile_hand.close();
+}
+
+uint32_t get_max(int a, int b) {
+    return a > b ? a : b;
 }
 
 uint32_t DCSketch::get_flow_spread(string flowid){
@@ -530,6 +555,7 @@ uint32_t DCSketch::get_flow_spread(string flowid){
     else {
         int spread_layer2 = layer2.get_spread(flowid, hash_flowid, 0); //L2_mean_error
         ret = spread_layer2 + layer1.capacity;  // - 2 * L1_mean_error;
+        // ret = get_max (spread_layer2, layer1.capacity);
     }
     return ret;
 }

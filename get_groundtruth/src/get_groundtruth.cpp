@@ -10,8 +10,9 @@
 #include <algorithm>
 using namespace std;
 
-// #define PER_FLOW_INFO 1
-#define GET_STATISTICS 1
+
+#define PER_FLOW_INFO 1
+// #define GET_STATISTICS 1
 // #define SUPER_SPREADERS 1
 // #define SUPER_CHANGES 1
 // #define GEN_SUB_TRACES 1
@@ -23,12 +24,13 @@ int main()
 #ifdef PER_FLOW_INFO
     unordered_map<string,set<string>> truth;
     string dataset = "CAIDA";
-    uint32_t filenum = 1;
+    uint32_t filenum = 7;
     for (size_t i = 0;i < filenum; i++){
         FILE_HANDLER filehandler(dataset, i);
 
         string flowid, elemID;
         while(int status = filehandler.get_item(flowid, elemID)){
+            swap(flowid, elemID);   //analyze CAIDA
             // cout << flowid << "  " << elemID << endl;
             truth[flowid].insert(elemID);
             if(filehandler.proc_num()%1000000 == 0){
@@ -38,8 +40,8 @@ int main()
 
         ofstream truthfile;
         ofstream truthglobal_file;
-        truthfile.open("../../get_groundtruth/truth/"+ dataset + "/" + filehandler.get_filename() + ".txt",ios::binary);
-        truthglobal_file.open("../../get_groundtruth/truth/"+ dataset + "/" + filehandler.get_filename() + "_global.txt",ios::binary);
+        truthfile.open("../../get_groundtruth/truth/"+ dataset + "_ANALYSIS/" + filehandler.get_filename() + "srcflow.txt",ios::binary);
+        truthglobal_file.open("../../get_groundtruth/truth/"+ dataset + "_ANALYSIS/" + filehandler.get_filename() + "srcflow_global.txt",ios::binary);
         
         if(!truthfile || !truthglobal_file){
             cout<<"fail to open"<<endl;

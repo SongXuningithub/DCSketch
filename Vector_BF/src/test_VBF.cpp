@@ -9,9 +9,9 @@ int main()
 {
     string dataset = "MAWI";
 
-    uint32_t mem = 30000;
-    vector<uint32_t> cm_mems{};
-    for (size_t i = 0;i < 13;i++){
+    uint32_t mem = 512*1000;
+    vector<uint32_t> cm_mems;
+    for (size_t i = 1;i < 5;i++){
         cm_mems.push_back(i * 50);
     }
 

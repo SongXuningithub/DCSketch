@@ -19,7 +19,7 @@ using std::unique_ptr;
 
 int main()
 {
-    bSkt<Bitmap> bskt(200, 0);
+    bSkt<HLL> bskt(200, 0);
     Get_Mem(bskt);
 
     // vector<double> cm_ratios{0.05, 0.15, 0.25, 0.35, 0.45, 0.55}; //0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 

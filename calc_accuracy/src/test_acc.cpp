@@ -11,9 +11,9 @@
 #include "util.h"
 using namespace std;
 
-#define TEST_PERFLOW_ACC 1
+// #define TEST_PERFLOW_ACC 1
 // #define TEST_CARMON_PLUS_PRIOR_TASK1
-// #define TEST_SUPERSPREADER_ACC 1
+#define TEST_SUPERSPREADER_ACC 1
 // #define TEST_CARMON_PLUS_PRIOR_TASK2
 // #define TEST_SUPERCHANGES_ACC 1
 
@@ -33,7 +33,7 @@ int main() {
     }
 
 #ifdef TEST_PERFLOW_ACC
-    string dataset = "ZIPF";
+    string dataset = "FACEBOOK";
     string filepath = "../../DCSketch/output/PerFlowSpread/" + dataset + "/";
     // string filepath = "../../vHLL/output/" + dataset + "/";
     // string filepath = "../../rerskt/output/" + dataset + "/";
@@ -41,18 +41,18 @@ int main() {
 
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};  //500, 750, 1000, 1250, 1500, 1750, 2000
     // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    vector<uint32_t> mems{1000};
-    // vector<double> layer1_ratios{0.6}; //0.5, 0.55, 0.6, 0.65, 0.7, 0.75
-    // for (size_t i = 0;i < layer1_ratios.size();i++){
-    //     mems.push_back(layer1_ratios[i] * 1000);
-    // }
+    vector<uint32_t> mems;
+    vector<double> layer1_ratios{0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75}; //
+    for (size_t i = 0;i < layer1_ratios.size();i++){
+        mems.push_back(layer1_ratios[i] * 1000);
+    }
     vector<double> AREs;
     vector<double> AAEs;
     for(auto tmpmem : mems){
         double ARE_sum = 0;
         double AAE_sum = 0;
-        uint32_t filenum = 2; //datasets[dataset].size();//
-        for (size_t i = 2;i < 3;i++){
+        uint32_t filenum = 1; //datasets[dataset].size();//
+        for (size_t i = 0;i < filenum;i++){
             string filename = to_string(tmpmem) + "_" + datasets[dataset][i] + ".txt";
             ifstream ifile(filepath + filename);
             if(!ifile){
@@ -107,7 +107,7 @@ int main() {
 
     string dataset = "MAWI";
 
-    vector<uint32_t> mems{500, 1000, 1500, 2000};
+    vector<uint32_t> mems{1000};  //500, 1000, 1500, 2000  512*1000
     // vector<uint32_t> mems{1000};
     for(uint32_t threshold : thresholds[dataset]){
         cout << "threshold: " << threshold << endl;
@@ -117,9 +117,9 @@ int main() {
             string filename = datasets[dataset][0];
             ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
             
-            filename = to_string(tmpmem) + "_" + filename;
-            // ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
-            ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
+            filename = to_string(tmpmem) + "_" + filename;  //+ "_0_" 
+            ifstream ifile_esti("../../DCSketch/output/SS_P4/"+dataset+ "/" + filename + ".txt");
+            // ifstream ifile_esti("../../SpreadSketch/output/"+dataset+"/" + filename + ".txt");  
             // ifstream ifile_esti("../../Vector_BF/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../DCS/output/"+dataset+"/" + filename + ".txt"); 
             // ifstream ifile_esti("../../CDS/output/SuperSpreaders/"+dataset+"/" + filename + ".txt");

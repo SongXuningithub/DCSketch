@@ -29,15 +29,15 @@ int main()
 #ifndef OUTPUT_SUPER_CHANGES
     DCSketch not_used(300, 0.7);
     
-    string ofile_path = "../../DCSketch/output/PerFlowSpread";
-    vector<double> layer1_ratios{0.65};  //0.5, 0.55, 0.6, 0.65, 0.7, 0.75
-    for (size_t i = 0;i < layer1_ratios.size();i++){
-        Test_task1(not_used, ofile_path, layer1_ratios[i]);
-    }
+    // string ofile_path = "../../DCSketch/output/PerFlowSpread";
+    // vector<double> layer1_ratios{0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75};  //0.5, 0.55, 0.6, 0.65, 0.7, 0.75
+    // for (size_t i = 0;i < layer1_ratios.size();i++){
+    //     Test_task1(not_used, ofile_path, layer1_ratios[i]);
+    // }
     
 
-    // string ofile_path = "../../DCSketch/output/SuperSpreaders";
-    // Test_task2(not_used, ofile_path, 0.6);
+    string ofile_path = "../../DCSketch/output/SS_P4";  //SuperSpreaders
+    Test_task2(not_used, ofile_path, 0.6);
 
     // string dataset = "CAIDA";
     // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};

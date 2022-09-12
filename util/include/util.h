@@ -108,7 +108,7 @@ public:
 FILE_HANDLER::FILE_HANDLER(string dataset, uint32_t file_idx){
     unordered_map<string,vector<string>> datasets;
     datasets["MAWI"] = {"pkts_frag_00001", "pkts_frag_00002"};
-    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)"};
+    datasets["CAIDA"] = {"5M_frag (1)", "5M_frag (2)", "5M_frag (3)", "5M_frag (4)", "5M_frag (5)", "5M_frag (6)", "5M_frag (7)"};
     datasets["KAGGLE"] = {"Unicauca"};
     datasets["FACEBOOK"] = {"page_page"};
     datasets["TWITTER"] = {"twitter_combined", "higgs-social_network"};
@@ -168,12 +168,12 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
 
 template <class Framework>
 void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
-    string dataset = "ZIPF";
+    string dataset = "FACEBOOK";
     vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
-        uint32_t filenum = 2;
-        for (size_t i = 2; i < 3; i++){  //datasets[dataset].size()
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
             Framework sketch(tmpmem, CarMon_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
@@ -187,7 +187,7 @@ void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_rati
             }
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            write_perflow_spread(dataset, filehandler.get_filename(), ofile_path, sketch, tmpmem);   //*sketch.layer1_ratio
+            write_perflow_spread(dataset, filehandler.get_filename(), ofile_path, sketch, tmpmem * sketch.layer1_ratio);   //*sketch.layer1_ratio
         }   
     }
 }
@@ -229,8 +229,8 @@ void write_superspreaders(string dataset, string ofile_path, string filename, ve
 
 template <class Framework>
 void Test_task2(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
-    vector<string> datasets{"MAWI", "CAIDA"};
-    vector<uint32_t> mems{500,  1000, 1500, 2000}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    vector<string> datasets{"MAWI"};  
+    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000   500,  1000, 1500, 2000
     for (string dataset : datasets){
         for(auto tmpmem : mems){
             cout << "memory: " << tmpmem << endl;
@@ -282,54 +282,81 @@ void write_superspreaders(string dataset, string ofile_path, string filename, ve
 
 template <class Framework>
 void Get_Mem(Framework not_use){
-    string dataset = "CAIDA_SUB";
+    string dataset = "CAIDA";
     uint32_t mem_base = 1000;
-    double expo = 2.0;
-
-    uint32_t filenum = 11;
-    vector<double> expos(filenum);
-    for (size_t i = 8; i < filenum; i++){
-        if(i>0 && expos[i-1] >= 2.05){
-            expos[i] = expo;
-            cout << i << " " << expo << endl;
-            continue;
+    double expo = 0.0;
+    double cmratio = 0;
+    while(true){
+        double tmp_mem = mem_base * pow(2.0, expo);
+        cout << "..........tmp_mem: " << tmp_mem << "............" << endl;
+        cmratio = 0;  //600.0/tmp_mem;
+        Framework sketch(tmp_mem, cmratio);
+        FILE_HANDLER filehandler(dataset, 0);
+        string flowID, elemID;
+        while(int status = filehandler.get_item(flowID, elemID)){
+            sketch.process_packet(flowID, elemID);
         }
-        while(true){
-            double cmratio = 0;
-            // cout << "CarMon ratio: " << cmratio << endl;
-
-            double tmp_mem = mem_base * pow(10.0, expo);
-            Framework sketch(tmp_mem, cmratio);
-            // Framework sketch(tmp_mem, 0.6);
-            // cout << "expo: " << expo <<"  tmp_mem: " << tmp_mem << endl;
-            FILE_HANDLER filehandler(dataset, i);
-            string flowID, elemID;
-            clock_t startTime,endTime;
-            startTime = clock();
-            while(int status = filehandler.get_item(flowID, elemID)){
-                sketch.process_packet(flowID, elemID);
-                // if(filehandler.proc_num()%10000000 == 0){
-                //     cout<<"process packet "<<filehandler.proc_num()<<endl;
-                // }
-            }
-            endTime = clock();
-            // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.5);
-            if (achieve){
-                expos[i] = expo;
-                cout << i << " " << expo << endl;
-                break;
-            } else {
-                expo += 0.05;
-            }
+        bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.25);
+        if (achieve){
+            cout << "expo: " << expo << endl;
+            cout << "tmp_mem: " << tmp_mem << endl;
+            break;
+        } else {
+            expo += 0.2;
         }
-    }
-    for(size_t i = 0;i < filenum;i++){
-        cout << to_string(expos[i]).substr(0, 5) << " ";
     }
     cout << endl;
     return;
 }
+
+// template <class Framework>
+// void Get_Mem(Framework not_use){
+//     string dataset = "CAIDA_SUB";
+//     uint32_t mem_base = 1000;
+//     double expo = 2.0;
+//     uint32_t filenum = 11;
+//     vector<double> expos(filenum);
+//     for (size_t i = 8; i < filenum; i++){
+//         if(i>0 && expos[i-1] >= 2.05){
+//             expos[i] = expo;
+//             cout << i << " " << expo << endl;
+//             continue;
+//         }
+//         while(true){
+//             double cmratio = 0;
+//             // cout << "CarMon ratio: " << cmratio << endl;
+//             double tmp_mem = mem_base * pow(10.0, expo);
+//             Framework sketch(tmp_mem, cmratio);
+//             // Framework sketch(tmp_mem, 0.6);
+//             // cout << "expo: " << expo <<"  tmp_mem: " << tmp_mem << endl;
+//             FILE_HANDLER filehandler(dataset, i);
+//             string flowID, elemID;
+//             clock_t startTime,endTime;
+//             startTime = clock();
+//             while(int status = filehandler.get_item(flowID, elemID)){
+//                 sketch.process_packet(flowID, elemID);
+//                 // if(filehandler.proc_num()%10000000 == 0){
+//                 //     cout<<"process packet "<<filehandler.proc_num()<<endl;
+//                 // }
+//             }
+//             endTime = clock();
+//             // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+//             bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.5);
+//             if (achieve){
+//                 expos[i] = expo;
+//                 cout << i << " " << expo << endl;
+//                 break;
+//             } else {
+//                 expo += 0.05;
+//             }
+//         }
+//     }
+//     for(size_t i = 0;i < filenum;i++){
+//         cout << to_string(expos[i]).substr(0, 5) << " ";
+//     }
+//     cout << endl;
+//     return;
+// }
 
 template <class Framework>  
 bool Check_Acc(string dataset, string filename, Framework& sketch, uint32_t tmpmem, double cmratio, double acc_requirement){
@@ -360,6 +387,7 @@ bool Check_Acc(string dataset, string filename, Framework& sketch, uint32_t tmpm
     ifile_hand.close();
 
     double ARE = relat_error/num;
+    cout << "ARE: " << ARE << endl;
     if(ARE <= acc_requirement)
         return true;
     else

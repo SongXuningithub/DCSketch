@@ -13,11 +13,11 @@
 // template<class Estimator>
 // void write_res(string dataset,string filename, RerSkt<Estimator>& rersketch, uint32_t tmpmem, double cmratio);
 int main() {
-    RerSkt<HLL> not_used(200, 0);
-    
-    // Get_Mem(rerskt_notuse);
-    string ofile_path = "../../rerskt/output";
-    Test_task1(not_used, ofile_path, 0);
+    RerSkt<HLL> rerskt_notuse(200, 0);
+    Get_Mem(rerskt_notuse);
+
+    // string ofile_path = "../../rerskt/output";
+    // Test_task1(not_used, ofile_path, 0);
     // string dataset = "CAIDA_SUB";
     // uint32_t mem_base = 1000;
     // double expo = -1;

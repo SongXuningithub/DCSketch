@@ -3,8 +3,8 @@
 #include <ctime>
 #include <unordered_map>
 
-// #define DETECT_SUPERSPREADERS 1
-#define DETECT_SUPERCHANGES 1
+#define DETECT_SUPERSPREADERS 1
+// #define DETECT_SUPERCHANGES 1
 
 
 void write_ss(string dataset, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem, uint32_t cm_mem);
@@ -15,9 +15,9 @@ int main()
     string dataset = "MAWI";
 
 #ifdef DETECT_SUPERSPREADERS
-    uint32_t mem = 30000;
+    uint32_t mem = 512*1000;  //256
     vector<double> cm_mems;
-    for (size_t i = 1;i < 13;i++){
+    for (size_t i = 1;i < 5;i++){
         cm_mems.push_back(i * 50);
     }
     

@@ -101,9 +101,10 @@ public:
         Table_Entry():flowid(""), min_reg_sum(0){}
     };
     static const uint32_t table_mem = 10; //KB
-    static const uint32_t tab_size = table_mem * 1024 * 8 / (8 + 32);
+    static const uint32_t tab_size = 2048; //table_mem * 1024 * 8 / (8 + 32);
     vector<Table_Entry> hash_table; 
     void insert_hashtab(string flowid, uint16_t selected_sum, uint64_t hahsres64);
+    void insert_hashtab_P4(string flowid, uint16_t selected_sum, uint64_t hahsres64);
 };
 
 #ifdef GLOBAL_HLL
