@@ -18,7 +18,7 @@ target_link_libraries(
     PUBLIC
     hashfunc
     utility
-    DCSketch
+    Couper
 )
 
 add_executable(

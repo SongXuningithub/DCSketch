@@ -14,9 +14,16 @@ using std::unique_ptr;
 // void write_res(string dataset, string filename, vHLL& virhll, uint32_t tmpmem, double cmratio);
 
 int main(){
-    vHLL virhll(200, 0);
-    Get_Mem(virhll);
-    
+    // vHLL not_used(200, 0);
+    // string dataset = "ZIPF";
+    // uint32_t init_mem = 16000;
+    // Get_Mem(not_used, dataset, init_mem);
+
+
+    vHLL not_used(200, 0);
+    string ofile_path = "../../vHLL/output";
+    Test_task1(not_used, ofile_path, 0);
+
     // string dataset = "FACEBOOK";
     // uint32_t mem = 1000;
     // vector<double> cm_ratios{0.05, 0.15, 0.25, 0.35, 0.45, 0.55}; //0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 

@@ -1,36 +1,32 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(vHLL)
+project(Couper)
 
 add_library(
-    ${PROJECT_NAME}
+    Couper
     SHARED
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/vHLL.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Couper.cpp
 )
 
 target_include_directories(
-    ${PROJECT_NAME}
+    Couper
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(
-    ${PROJECT_NAME}
+    Couper
     PUBLIC
     hashfunc
     utility
-    Couper
 )
 
-add_executable(
-    test_vHLL
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/test_vHLL.cpp
-)
+# test executable
+add_executable(test_Couper ${CMAKE_CURRENT_SOURCE_DIR}/src/test_Couper.cpp)
 
 target_link_libraries(
-    test_vHLL
+    test_Couper
     PUBLIC
-    ${PROJECT_NAME}
+    Couper
     mylibpcap
-    utility
 )

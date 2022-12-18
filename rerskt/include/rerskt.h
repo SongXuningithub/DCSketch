@@ -9,7 +9,7 @@
 #include<algorithm>
 #include<set>
 #include"hashfunc.h"
-#include"DCSketch.h"
+#include"Couper.h"
 using namespace std;
 
 // #define HASH_SEED_1 92317
@@ -69,9 +69,6 @@ struct MinHeapCmp{
 template<class Estimator>
 class RerSkt{
 private:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
     //rerSketch
     bool DETECT_SUPERSPREADER = false;
     uint32_t memory;  //kB
@@ -81,11 +78,11 @@ private:
 
 public:
     void process_packet(string flowid, string element);
-    int get_flow_spread(string flowid);
+    int get_flow_cardinality(string flowid);
     uint32_t heap_size = 300;
     vector<FLOW> heap;
     set<string> inserted;
-    RerSkt(uint32_t memory_, double cmratio);
+    RerSkt(uint32_t memory_, double unused);
 };
 
 

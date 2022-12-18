@@ -10,7 +10,6 @@
 #include<set>
 #include "hashfunc.h"
 #include "util.h"
-#include "DCSketch.h"
 using namespace std;
 
 #define HASH_SEED_1 92317
@@ -23,11 +22,12 @@ public:
     static const uint32_t register_size = 5;
     static const uint32_t size = register_num * register_size;
     static const uint32_t HLL_size = register_num * register_size;
-    static constexpr double alpha_m = 0.7213/(1+1.079/128); 
+    static constexpr double alpha_m = 0.7213/(1+1.079 / 128); 
     array<uint8_t,register_num> HLL_registers{};
     uint8_t get_leading_zeros(uint32_t bitstr);
     void record_element(uint32_t hashres);
     int get_spread();
+    double memory_utilization();
 };
 
 class Bitmap{
@@ -41,7 +41,33 @@ public:
     void reset();
     // uint32_t size(){ return bitnum; }
     Bitmap(){ reset(); }
+    double memory_utilization();
 };
+
+class MultiResBitmap {
+public:
+    static constexpr double sigma = 0.2;
+    static const uint32_t b = 0.6367 / (sigma * sigma);
+    static const uint32_t LEN = b;
+    static const uint32_t b_hat = 2 * b;
+    static const uint32_t C = 120000;
+    inline static uint32_t c; // = log2(C / (2.6744 * b)); //== 9.47
+    static constexpr double setmax_ratio = 0.9311;
+    inline static uint32_t mrbitmap_size;  // = b * (c - 1) + b_hat;
+    static const uint32_t size = 240;
+    vector<vector<uint8_t>> bitmaps;
+    inline static bool init_flag = false;
+
+public:
+    MultiResBitmap(); 
+    static void shared_param_Init();
+    static uint32_t get_size();
+    uint32_t get_ones_num(uint32_t layer);
+    void record_element(uint32_t hashres);
+    int get_spread();
+    double memory_utilization();
+};
+
 
 class FLOW{
 public:
@@ -59,29 +85,45 @@ struct MinHeapCmp{
 template<class Estimator>
 class bSkt{
 public:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
     //bSkt
     bool DETECT_SUPERSPREADER = false;
     uint32_t memory;  //kB
-    uint32_t table_size = memory * 1024 * 8 / 4 /Estimator::size;
+    uint32_t table_size;   //memory * 1024 * 8 / 4 /Estimator::size;
     vector<vector<Estimator>> tables;
 
     void process_packet(string flowid,string element);
     void report_superspreaders(vector<IdSpread>& superspreaders);
-    bSkt(uint32_t memory_, double cmratio);
-    uint32_t get_flow_spread(string flowid);
+    bSkt(uint32_t memory_, double unused);
+    uint32_t get_flow_cardinality(string flowid);
     uint32_t heap_size = 400;
     set<string> inserted;
     vector<FLOW> heap;
+
+    vector<double> get_utilization();
 };
 
 template<class Estimator>
-bSkt<Estimator>::bSkt(uint32_t memory_, double cmratio):memory(memory_ * (1 - cmratio)), table_size(memory * 1024 * 8 / 4 /Estimator::size), 
-tables(4), CarMon_bm(memory_ * cmratio){
-    if(cmratio == 0)
-        use_CarMon = false;
+vector<double> bSkt<Estimator>::get_utilization(){
+    vector<double> bins(100);
+    auto tab = tables[0];
+    double res;
+    for(auto estimator : tab) {
+        uint32_t bin_idx = static_cast<uint32_t>(100 * estimator.memory_utilization());
+        bin_idx = bin_idx < 100 ? bin_idx : 100;
+        bins[bin_idx]++;
+    }
+    for (size_t i = 0;i < bins.size();i++) {
+        bins[i] = bins[i] / tab.size();
+    }
+    for (size_t i = 1;i < bins.size();i++) {
+        bins[i] = bins[i] + bins[i - 1];
+    }
+    return bins;
+}
+
+template<class Estimator>
+bSkt<Estimator>::bSkt(uint32_t memory_, double unused) : memory(memory_), table_size(memory * 1024 * 8 / 4 /Estimator::size), 
+tables(4){
     tables[0].resize(table_size);
     tables[1].resize(table_size);
     tables[2].resize(table_size);

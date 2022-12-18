@@ -9,7 +9,7 @@
 #include<set>
 #include"hashfunc.h"
 #include"util.h"
-#include"DCSketch.h"
+#include"Couper.h"
 using namespace std;
 
 #define HASH_SEED 92317
@@ -17,9 +17,9 @@ using namespace std;
 
 class CDS{
 public:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
+    //Couper: Filter
+    Bitmap_Arr Couper_bm;
+    bool use_Couper = true;
     //CDS
     array<uint64_t,3> mi = {16067, 16369, 16361};
     array<uint64_t,2> Mi = {mi[1], mi[0]};

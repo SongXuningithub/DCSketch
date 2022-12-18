@@ -32,6 +32,15 @@ int HLL::get_spread(){
     return (int)E;
 }
 
+double HLL::memory_utilization(){
+    double used = 0;
+    for (auto reg : HLL_registers){
+        if (reg > 0)
+            used++;
+    }
+    return used / register_num;
+}
+
 void Bitmap::reset(){
     for(size_t i = 0;i < raw.size();i++)
         raw[i] = 0;
@@ -62,17 +71,105 @@ int Bitmap::get_spread(){
     return static_cast<int>(card);
 }
 
+double Bitmap::memory_utilization(){
+    double used = 0;
+    for (auto tmp : raw){
+        bitset<8> tmpbits(tmp);
+        used += tmpbits.count();
+    }
+    return used / bitnum;
+}
+
+
+void MultiResBitmap::shared_param_Init(){
+    c = 2 + ceil(log2(C / (2.6744 * b)));
+    mrbitmap_size = b * (c - 1) + b_hat;
+    cout << "MultiResBitmap shared params initialized." << endl;
+}
+
+MultiResBitmap::MultiResBitmap(){
+    if(init_flag == false) {
+        shared_param_Init();
+        init_flag = true;
+    }
+    bitmaps.resize(c);
+    uint32_t uint8num = ceil(b/8.0);
+    for(size_t i = 0;i < c - 1;i++)
+        bitmaps[i].resize(uint8num);
+    uint8num = ceil(b_hat/8.0);
+    bitmaps[c - 1].resize(uint8num);
+}
+
+uint32_t MultiResBitmap::get_ones_num(uint32_t layer){
+    auto tmpbitmap = bitmaps[layer];
+    uint32_t setbit_num = 0;
+    for(size_t i = 0;i < tmpbitmap.size();i++){
+        setbit_num += get_one_num(tmpbitmap[i]);
+    }
+    return setbit_num;
+}
+
+void MultiResBitmap::record_element(uint32_t hashres){
+    uint32_t l = get_leading_zeros(hashres);
+    uint32_t setbit;
+    hashres <<= 14;
+    hashres >>= 14;
+    if(l < MultiResBitmap::c - 1)
+        setbit = hashres % MultiResBitmap::b;
+    else
+        setbit = hashres % MultiResBitmap::b_hat;
+    if(l < c - 1){
+        bitmaps[l][setbit / 8] |= (128 >> (setbit % 8));
+    } else {
+        bitmaps[c - 1][setbit / 8] |= (128 >> (setbit % 8));
+    }
+}
+
+int MultiResBitmap::get_spread(){
+    int base = c - 2;
+    while(base >= 0){
+        uint32_t setmax;
+        if(base == c - 1)
+            setmax = b_hat * setmax_ratio;
+        else
+            setmax = b * setmax_ratio;
+        if(get_ones_num(base) > setmax)
+            break;
+        base--;
+    }
+    base++;
+    double m = 0;
+    for(size_t i = base;i < c - 1;i++){
+        m += b * log( static_cast<double>(b) / (b - get_ones_num(i) ) );
+    }
+    m += b_hat * log( static_cast<double>(b_hat) / (b_hat - get_ones_num(c - 1) ) );
+    uint32_t factor = powf64(2,base);
+    return static_cast<uint32_t>(factor * m);
+}
+
+// double MultiResBitmap::memory_utilization(){
+//     double used = 0;
+//     for (size_t i = 0;i < bitmaps.size() - 1;i++){
+//         used += get_ones_num(i);
+//     }
+//     used += get_ones_num(bitmaps.size() - 1);
+//     return used / MultiResBitmap::mrbitmap_size;
+// }
+
+double MultiResBitmap::memory_utilization(){
+    double used = 0;
+    for (size_t i = 0;i < bitmaps.size();i++){
+        if (get_ones_num(i) > 0)
+            used++;
+    }
+    return used / MultiResBitmap::c;
+}
+
 template<class Estimator>
 void bSkt<Estimator>::process_packet(string flowid, string element){
-    //CarMon: filter
+    //Couper: filter
     array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(flowid + element, HASH_SEED_2);
-    if (use_CarMon) {
-        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
-        if (full_flag == false)
-            return;
-    }
-
     //bSkt
     // array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     // array<uint64_t,2> hash_element = str_hash128(flowid + element,HASH_SEED_2);
@@ -84,7 +181,7 @@ void bSkt<Estimator>::process_packet(string flowid, string element){
     }
     if(DETECT_SUPERSPREADER == false)
         return;
-    uint32_t flowsrpead = get_flow_spread(flowid);
+    uint32_t flowsrpead = get_flow_cardinality(flowid);
     FLOW tmpflow;
     tmpflow.flowid = flowid;  tmpflow.flow_spread = flowsrpead;
     if(inserted.find(flowid) != inserted.end()){
@@ -119,17 +216,8 @@ void bSkt<Estimator>::process_packet(string flowid, string element){
 }
 
 template<class Estimator>
-uint32_t bSkt<Estimator>::get_flow_spread(string flowid){
-    //CarMon: filter
-    int spread_layer1 = 0;
+uint32_t bSkt<Estimator>::get_flow_cardinality(string flowid){
     array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
-    if (use_CarMon) {
-        spread_layer1 = CarMon_bm.get_spread(flowid, hash_flowid, 0);  //
-        if(spread_layer1 != BITMAP_FULL_FLAG)
-            return spread_layer1;
-        else
-            spread_layer1 = CarMon_bm.capacity;
-    }
     //bSkt
     // array<uint64_t,2> hash_flowid = str_hash128(flowid,HASH_SEED_1);
     uint32_t spread = 1<<30;
@@ -140,8 +228,11 @@ uint32_t bSkt<Estimator>::get_flow_spread(string flowid){
         if(tmp < spread)
             spread = tmp;
     }
-    return spread + spread_layer1;
+    if (spread < 1)
+        spread = 1;
+    return spread;
 }
 
 template class bSkt<HLL>;
 template class bSkt<Bitmap>;
+template class bSkt<MultiResBitmap>;

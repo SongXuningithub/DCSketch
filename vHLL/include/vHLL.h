@@ -7,7 +7,7 @@
 #include<algorithm>
 #include"hashfunc.h"
 #include"util.h"
-#include"DCSketch.h"
+#include"Couper.h"
 #include<set>
 using namespace std;
 
@@ -28,9 +28,6 @@ struct MinHeapCmp
 
 class vHLL{
 public:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
     //Virtual HyperLogLog
     uint32_t memory;
     static const uint32_t HLL_size = 128;
@@ -50,7 +47,7 @@ public:
     uint8_t get_register(uint32_t reg_pos);
     void set_register(uint32_t reg_pos, uint8_t val);
     uint32_t get_spread(vector<uint8_t> virtual_HLL);
-    int get_flow_spread(string flowID);
+    int get_flow_cardinality(string flowID);
 };
 
 

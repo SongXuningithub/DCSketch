@@ -19,97 +19,14 @@ using std::unique_ptr;
 
 int main()
 {
+    // bSkt<HLL> bskt(200, 0);
+    // string dataset = "ZIPF";
+    // uint32_t init_mem = 8000;
+    // Get_Mem(bskt, dataset, init_mem);
+
     bSkt<HLL> bskt(200, 0);
-    Get_Mem(bskt);
-
-    // vector<double> cm_ratios{0.05, 0.15, 0.25, 0.35, 0.45, 0.55}; //0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 
- 
-    // string dataset = "CAIDA_SUB";
-    // uint32_t mem_base = 1000;
-    // double expo = -1;
-    // uint32_t filenum = 11;
-    // vector<double> expos(filenum);
-
-    // for (size_t i = 0; i < filenum; i++){
-    //     if(expo >= 2.0){
-    //         expos[i] = expo;
-    //         cout << i << " " << expo << endl;
-    //         continue;
-    //     }
-    //     while(true){
-    //         double cmratio = 0;
-    //         // cout << "CarMon ratio: " << cmratio << endl;
-    //         double tmp_mem = mem_base * pow(10.0, expo);
-    //         bSkt<HLL> bskt(tmp_mem, cmratio);
-    //         FILE_HANDLER filehandler(dataset, i);
-    //         string flowID, elemID;
-    //         clock_t startTime,endTime;
-    //         startTime = clock();
-    //         while(int status = filehandler.get_item(flowID, elemID)){
-    //             bskt.process_packet(flowID, elemID);
-    //             // if(filehandler.proc_num()%10000000 == 0){
-    //             //     cout<<"process packet "<<filehandler.proc_num()<<endl;
-    //             // }
-    //         }
-    //         endTime = clock();
-    //         // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-    //         bool achieve = write_res(dataset, filehandler.get_filename(), bskt, tmp_mem, cmratio, 0.5);
-    //         if (expo >= 2.0 || achieve){
-    //             expos[i] = expo;
-    //             cout << i << " " << expo << endl;
-    //             break;
-    //         } else {
-    //             expo += 0.1;
-    //         }
-    //     }
-        
-    // }
-    // for(size_t i = 0;i < filenum;i++){
-    //     cout << to_string(expos[i]).substr(0,4) << " ";
-    // }
-    // cout << endl;
-    // string dataset = "FACEBOOK";
-    // vector<uint32_t> mems{500, 750, 1000, 1250, 1500, 1750, 2000};
-    // // vector<uint32_t> mems{500, 1000, 1500, 2000};
-    // // vector<uint32_t> mems{2000};
-    // for(auto tmpmem : mems){
-    //     cout << "memory: " << tmpmem << endl;
-    //     uint32_t filenum = 1;
-    //     for(size_t i = 0;i < filenum;i++){
-    //         FILE_HANDLER filehandler(dataset, i);
-    //         string flowID, elemID;
-    //         bSkt<HLL> bskt(tmpmem);     
-    //         clock_t startTime,endTime;
-    //         startTime = clock();
-    //         while(int status = filehandler.get_item(flowID, elemID)){
-    //             bskt.process_packet(flowID, elemID);
-    //             if(filehandler.proc_num()%1000000 == 0){
-    //                 cout<<"process packet "<<filehandler.proc_num()<<endl;
-    //             }
-    //         }
-    //         endTime = clock();
-    //         cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-    //         // string flow_id;
-    //         // while(bool iseof = checker.query_flow(flow_id))
-    //         // {
-    //         //     int flow_spread = rerskt.get_flow_spread(flow_id);
-    //         //     flow_spread = max(0,flow_spread);
-    //         //     checker.record_result((uint32_t)flow_spread);
-    //         //     //checker.record_full_result(flow_spread,dcsketch.layer1);
-    //         // }
-    //     #ifdef OUTPUT_PER_FLOW_SPREAD
-    //         write_res(dataset, filehandler.get_filename(), bskt, tmpmem);
-    //     #endif
-    //     #ifdef OUTPUT_SUPER_SPREADERS
-    //         vector<IdSpread> superspreaders;
-    //         startTime = clock();
-    //         bskt.report_superspreaders(superspreaders);
-    //         endTime = clock();
-    //         cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-    //         write_superspreaders(dataset, filename, superspreaders);
-    //     #endif
-    //     }
-    // }
+    string ofile_path = "../../bSkt/output";
+    Test_task1(bskt, ofile_path, 0);
     return 0;
 }
 

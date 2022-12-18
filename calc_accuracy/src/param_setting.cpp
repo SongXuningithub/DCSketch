@@ -29,7 +29,7 @@ int main()
         ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
         
         filename = to_string(tmpmem) + "_" + filename;
-        ifstream ifile_esti("../../DCSketch/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
+        ifstream ifile_esti("../../Couper/output/SuperSpreaders/"+dataset+ "/" + filename + ".txt");
 
         if(!ifile_truth || !ifile_esti){
             cout<<"unable to open file"<<endl;

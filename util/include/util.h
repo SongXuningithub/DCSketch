@@ -91,7 +91,7 @@ int TXT_Handler::get_packet(string& flowID, string& elemID){
 
 class FILE_HANDLER{
 private:
-    string data_path = "/home/xun/dataset/";
+    string data_path = "/home/xun/datasets/";
     PCAP_SESSION* pcap_handler;
     TXT_Handler* txt_handler;
     string dataset;
@@ -112,7 +112,7 @@ FILE_HANDLER::FILE_HANDLER(string dataset, uint32_t file_idx){
     datasets["KAGGLE"] = {"Unicauca"};
     datasets["FACEBOOK"] = {"page_page"};
     datasets["TWITTER"] = {"twitter_combined", "higgs-social_network"};
-    datasets["ZIPF"] = {"zipf_0.9", "zipf_1.1", "zipf_1.3"};
+    datasets["ZIPF"] = {"zipf_0.9", "zipf_1.1", "zipf_1.3", "zipf_1.0"};
 
     this->dataset = dataset;
 
@@ -168,12 +168,12 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
 
 template <class Framework>
 void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
-    string dataset = "FACEBOOK";
-    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    string dataset = "MAWI";
+    vector<uint32_t> mems{1500}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
         uint32_t filenum = 1;
-        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+        for (size_t i = 0; i < 1; i++){  //datasets[dataset].size()
             Framework sketch(tmpmem, CarMon_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
@@ -187,7 +187,7 @@ void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_rati
             }
             endTime = clock();
             cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            write_perflow_spread(dataset, filehandler.get_filename(), ofile_path, sketch, tmpmem * sketch.layer1_ratio);   //*sketch.layer1_ratio
+            write_perflow_spread(dataset, filehandler.get_filename(), ofile_path, sketch, tmpmem);   //*sketch.layer1_ratio
         }   
     }
 }
@@ -216,8 +216,8 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
         uint32_t spread;
         ifile_hand >> flowid;
         ifile_hand >> spread;
-        uint32_t estimated_spread = sketch.get_flow_spread(flowid);
-        ofile_hand << flowid <<" "<<spread<<" "<<estimated_spread;
+        uint32_t estimated_card = sketch.get_flow_cardinality(flowid);
+        ofile_hand << flowid <<" "<<spread<<" "<<estimated_card;
     }
     // endTime = clock();
     // cout << "The query time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
@@ -229,35 +229,33 @@ void write_superspreaders(string dataset, string ofile_path, string filename, ve
 
 template <class Framework>
 void Test_task2(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
-    vector<string> datasets{"MAWI"};  
+    string dataset = "MAWI";  
     vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000   500,  1000, 1500, 2000
-    for (string dataset : datasets){
-        for(auto tmpmem : mems){
-            cout << "memory: " << tmpmem << endl;
-            uint32_t filenum = 1;
-            for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
-                Framework sketch(tmpmem, CarMon_Layer1_ratio);
-                FILE_HANDLER filehandler(dataset, i);
-                string flowID, elemID;
-                clock_t startTime, endTime;
+    for(auto tmpmem : mems){
+        cout << "memory: " << tmpmem << endl;
+        uint32_t filenum = 1;
+        for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
+            Framework sketch(tmpmem, CarMon_Layer1_ratio);
+            FILE_HANDLER filehandler(dataset, i);
+            string flowID, elemID;
+            clock_t startTime, endTime;
 
-                startTime = clock();
-                while(int status = filehandler.get_item(flowID, elemID)){
-                    sketch.process_packet(flowID, elemID);
-                    // if(filehandler.proc_num()%1000000 == 0)
-                    //     cout<<"process packet "<<filehandler.proc_num()<<endl;
-                }
-                endTime = clock();
-                cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            startTime = clock();
+            while(int status = filehandler.get_item(flowID, elemID)){
+                sketch.process_packet(flowID, elemID);
+                // if(filehandler.proc_num()%1000000 == 0)
+                //     cout<<"process packet "<<filehandler.proc_num()<<endl;
+            }
+            endTime = clock();
+            cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 
-                vector<IdSpread> superspreaders;
-                startTime = clock();
-                sketch.report_superspreaders(superspreaders);
-                endTime = clock();
-                cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-                write_superspreaders(dataset, ofile_path, filehandler.get_filename(), superspreaders, tmpmem);
-            }   
-        }
+            vector<IdSpread> superspreaders;
+            startTime = clock();
+            sketch.report_superspreaders(superspreaders);
+            endTime = clock();
+            cout << "The resolution time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+            write_superspreaders(dataset, ofile_path, filehandler.get_filename(), superspreaders, tmpmem);
+        }   
     }
 }
 
@@ -281,31 +279,33 @@ void write_superspreaders(string dataset, string ofile_path, string filename, ve
 }
 
 template <class Framework>
-void Get_Mem(Framework not_use){
-    string dataset = "CAIDA";
-    uint32_t mem_base = 1000;
-    double expo = 0.0;
+void Get_Mem(Framework not_use, string dataset, uint32_t mem_base){
+    double expo = 0.0;//0.0;
     double cmratio = 0;
+    double mem1 = -1, mem2 = -1;
     while(true){
         double tmp_mem = mem_base * pow(2.0, expo);
         cout << "..........tmp_mem: " << tmp_mem << "............" << endl;
-        cmratio = 0;  //600.0/tmp_mem;
+        cmratio = 0.6;  //600.0/tmp_mem;
         Framework sketch(tmp_mem, cmratio);
-        FILE_HANDLER filehandler(dataset, 0);
+        FILE_HANDLER filehandler(dataset, 3);
         string flowID, elemID;
         while(int status = filehandler.get_item(flowID, elemID)){
+            // cout << flowID << "  " << elemID << endl;
             sketch.process_packet(flowID, elemID);
         }
-        bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.25);
-        if (achieve){
-            cout << "expo: " << expo << endl;
-            cout << "tmp_mem: " << tmp_mem << endl;
+        // bool achieve = Check_Acc(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio, 0.25);
+        double ratio_error = Check_Acc_Ratio_Error(dataset, filehandler.get_filename(), sketch, tmp_mem, cmratio);
+        if (ratio_error < 1.25) {
+            mem2 = tmp_mem;
             break;
-        } else {
-            expo += 0.2;
+        } else if (ratio_error < 1.5 && mem1 < 0) {
+            mem1 = tmp_mem;
         }
+        cout << "tmp_mem: " << tmp_mem << "  ratio error: " << ratio_error << endl;
+        expo += 0.2;
     }
-    cout << endl;
+    cout << "memory for ratio error 1.5: " << mem1 << "   memory for ratio error 1.25: " << mem2 << endl;
     return;
 }
 
@@ -394,5 +394,39 @@ bool Check_Acc(string dataset, string filename, Framework& sketch, uint32_t tmpm
         return false;
 }
 
+template <class Framework>  
+double Check_Acc_Ratio_Error(string dataset, string filename, Framework& sketch, uint32_t tmpmem, double cmratio){
+    string ifile_path = "../../get_groundtruth/truth/" + dataset + "/";
+    ifstream ifile_hand;
+
+    ifile_hand = ifstream(ifile_path + filename + ".txt");
+    if(!ifile_hand){ 
+        cout<<"fail to open files."<<endl;
+        return false;
+    }
+    clock_t startTime,endTime;
+    startTime = clock();
+    bool first_line = true;
+    double total_ratio_error = 0;
+    double num = 0;
+
+    while(!ifile_hand.eof()){
+        string flowid;
+        int spread;
+        ifile_hand >> flowid;
+        ifile_hand >> spread;
+        int estimated_spread = sketch.get_flow_cardinality(flowid);
+        double tmp_ratio_error = (double)spread / estimated_spread;
+        tmp_ratio_error = tmp_ratio_error >= 1 ? tmp_ratio_error : 1 / tmp_ratio_error;
+        total_ratio_error += tmp_ratio_error;
+        num++;
+    }
+    endTime = clock();
+    ifile_hand.close();
+
+    double ratio_error = total_ratio_error / num;
+    cout << "Ratio Error: " << ratio_error << endl;
+    return ratio_error;
+}
 
 #endif

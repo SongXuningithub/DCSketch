@@ -8,13 +8,13 @@
 #include <algorithm>
 #include "hashfunc.h"
 #include "util.h"
-#include "DCSketch.h"
+#include "Couper.h"
 
 using namespace std;
 #define HASH_SEED_1 92317
 #define HASH_SEED_2 37361 
 
-class MultiResBitmap{
+class MultiResBitmapSS{
 public:
     static constexpr double sigma = 0.1;
     static const uint32_t b = 0.6367 / (sigma * sigma);
@@ -24,7 +24,7 @@ public:
     static constexpr double setmax_ratio = 0.9311;
     static const uint32_t mrbitmap_size = b * (c - 1) + b_hat;
     vector<vector<uint8_t>> V;
-    MultiResBitmap();    
+    MultiResBitmapSS();    
     uint32_t get_ones_num(uint32_t layer);
     void update(uint32_t l, uint32_t setbit);
     uint32_t get_cardinality();
@@ -34,16 +34,16 @@ class SS_Bucket{
 public:
     string K;
     uint32_t L = 0;
-    MultiResBitmap mrbitmap;
-    static const uint32_t bkt_size = 32 + 32 + MultiResBitmap::mrbitmap_size;
+    MultiResBitmapSS mrbitmap;
+    static const uint32_t bkt_size = 32 + 32 + MultiResBitmapSS::mrbitmap_size;
 };
 
 
 class SpreadSketch{
 public:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
+    //Couper: Filter
+    Bitmap_Arr Couper_bm;
+    bool use_Couper = true;
     //SpreadSketch
     static const uint32_t r = 4;
     uint32_t w;

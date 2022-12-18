@@ -8,7 +8,7 @@
 #include <algorithm>
 #include "hashfunc.h"
 #include "util.h"
-#include "DCSketch.h"
+#include "Couper.h"
 using namespace std;
 
 
@@ -26,9 +26,9 @@ public:
 
 class Vector_Bloom_Filter{
 public:
-    //CarMon: Filter
-    Bitmap_Arr CarMon_bm;
-    bool use_CarMon = true;
+    //Couper: Filter
+    Bitmap_Arr Couper_bm;
+    bool use_Couper = true;
     //VBF
     uint32_t m;
     uint32_t Z;

@@ -12,7 +12,7 @@ target_link_libraries(
     rerskt
     PUBLIC
     hashfunc
-    DCSketch
+    Couper
 )
 
 target_include_directories(

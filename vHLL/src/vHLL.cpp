@@ -9,10 +9,7 @@ namespace regOP{
     vector<uint64_t> zero_patterns(64);
 }
 
-vHLL::vHLL(uint32_t mem, double cmratio): global_HLL(glb_HLL_size), CarMon_bm(mem * cmratio){
-    if(cmratio == 0)
-        use_CarMon = false;
-    memory = mem * (1 - cmratio);  //kB
+vHLL::vHLL(uint32_t mem, double cmratio): memory(mem), global_HLL(glb_HLL_size){
     register_num = memory * 1024 * 8 / 5;
     raw.resize(memory * 1024 * 8 / 32 + 1);
     uint64_t allone = -1;
@@ -54,14 +51,6 @@ void vHLL::set_register(uint32_t reg_pos, uint8_t val){
 }
 
 void vHLL::process_packet(string flowID, string elementID){
-    //CarMon: filter
-    array<uint64_t,2> hash_flowid = str_hash128(flowID, HASH_SEED_1);
-    array<uint64_t,2> hash_element = str_hash128(flowID + elementID, HASH_SEED_2);
-    if (use_CarMon) {
-        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
-        if (full_flag == false)
-            return;
-    }
     // uint32_t hash_flow = str_hash32(flowID, HASH_SEED_1);
     uint32_t hash_eleID = str_hash32(elementID, HASH_SEED_1);
     uint32_t reg_pos = str_hash32(flowID + to_string(hash_eleID & (HLL_size - 1)), HASH_SEED_2) % register_num;
@@ -79,7 +68,7 @@ void vHLL::process_packet(string flowID, string elementID){
     //detect superspreaders
     if(DETECT_SUPERSPREADER == false)
         return;
-    uint32_t flowsrpead = get_flow_spread(flowID);
+    uint32_t flowsrpead = get_flow_cardinality(flowID);
     FLOW tmpflow;
     tmpflow.flowid = flowID;  tmpflow.flow_spread = flowsrpead;
     if(inserted.find(flowID) != inserted.end()){
@@ -126,17 +115,7 @@ uint32_t vHLL::get_spread(vector<uint8_t> virtual_HLL){
     return static_cast<uint32_t>(E);
 }
 
-int vHLL::get_flow_spread(string flowID){
-    //CarMon: filter
-    int spread_layer1 = 0;
-    array<uint64_t,2> hash_flowid = str_hash128(flowID, HASH_SEED_1);
-    if (use_CarMon) {
-        spread_layer1 = CarMon_bm.get_spread(flowID, hash_flowid, 0);  //
-        if(spread_layer1 != BITMAP_FULL_FLAG)
-            return spread_layer1;
-        else
-            spread_layer1 = CarMon_bm.capacity;
-    }
+int vHLL::get_flow_cardinality(string flowID){
     //Virtual HyperLogLog
     vector<uint8_t> virtual_HLL(HLL_size);
     for(size_t i = 0;i < HLL_size;i++){
@@ -144,8 +123,11 @@ int vHLL::get_flow_spread(string flowID){
         virtual_HLL[i] = get_register(reg_pos);
     }
     double ns_hat = get_spread(virtual_HLL);
-    // double m = register_num, s = HLL_size;
-    // double n_hat = get_spread(global_HLL);
-    // double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
-    return round(ns_hat) + spread_layer1;
+    double m = register_num, s = HLL_size;
+    double n_hat = get_spread(global_HLL);
+    double ans = m * s / (m - s) * (ns_hat/s - n_hat/m);
+    if (ans < 1)
+        ans = 1;
+    return ans;
+    // return round(ns_hat) + spread_layer1;
 }

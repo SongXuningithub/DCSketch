@@ -24,10 +24,10 @@ void BF_Table::append(uint32_t order_num,vector<uint8_t> rowdata) {
 
 /****************************************************************/
 
-Vector_Bloom_Filter::Vector_Bloom_Filter(uint32_t mem, double cmratio): CarMon_bm(mem * cmratio) {
+Vector_Bloom_Filter::Vector_Bloom_Filter(uint32_t mem, double cmratio): Couper_bm(mem * cmratio) {
     if(cmratio == 0){
-        use_CarMon = false;
-        cout << "CarMon not used" << endl;
+        use_Couper = false;
+        cout << "Couper not used" << endl;
     }   
     m = mem * (1 - cmratio) * 1024 * 8 / 5 / 4096;
     cout<<"m="<<m<<endl; 
@@ -58,8 +58,8 @@ uint32_t Vector_Bloom_Filter::VBF_hash_f(array<uint64_t,2> hash_element){
 void Vector_Bloom_Filter::process_packet(string srcip, array<uint8_t,4> srcip_tuple, string dstip){
     array<uint64_t,2> hash_flowid = str_hash128(srcip, HASH_SEED_1);
     array<uint64_t,2> hash_element = str_hash128(srcip + dstip, HASH_SEED_2);
-    if (use_CarMon) {
-        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
+    if (use_Couper) {
+        bool full_flag = Couper_bm.process_packet(hash_flowid, hash_element);
         if (full_flag == false)
             return;
     } 
@@ -193,10 +193,10 @@ void Vector_Bloom_Filter::Detect_Superpoint(vector<IdSpread>* superspreaders) {
                 zero_num = 1;
             uint32_t spread = m * log( m / static_cast<double>(zero_num) );
             
-            //Filter out false positives with CarMon Bitmap Array 
-            if (use_CarMon){
+            //Filter out false positives with Couper Bitmap Array 
+            if (use_Couper){
                 // array<uint64_t,2> hash_flowid = str_hash128(ipstr, HASH_SEED_1);
-                bool full_flag = CarMon_bm.check_flow_full(hash_flowid);
+                bool full_flag = Couper_bm.check_flow_full(hash_flowid);
                 if (full_flag == true){
                     superspreaders->push_back(IdSpread(ipstr,spread));
                 } else {

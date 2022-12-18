@@ -87,10 +87,8 @@ uint32_t getbit(array<uint64_t,2> hashres128,uint32_t pos){
 }
 
 template<class Estimator>
-RerSkt<Estimator>::RerSkt(uint32_t memory_, double cmratio): memory(memory_ * (1 - cmratio)), table_size(memory * 1024 * 8 / 2 /Estimator::size),
-table1(table_size), table2(table_size), CarMon_bm(memory_ * cmratio) {
-    if(cmratio == 0)
-        use_CarMon = false;
+RerSkt<Estimator>::RerSkt(uint32_t memory_, double unused): memory(memory_), table_size(memory * 1024 * 8 / 2 /Estimator::size),
+table1(table_size), table2(table_size) {
     for(size_t i = 0; i < table1.size();i++){
         table1[i].reset();
         table2[i].reset();
@@ -99,16 +97,6 @@ table1(table_size), table2(table_size), CarMon_bm(memory_ * cmratio) {
 
 template<class Estimator>
 void RerSkt<Estimator>::process_packet(string flowid, string element){
-    //CarMon: filter
-    array<uint64_t,2> hash_flowid;
-    array<uint64_t,2> hash_element;
-    if (use_CarMon) {
-        hash_flowid = str_hash128(flowid, HASH_SEED_1);
-        hash_element = str_hash128(flowid + element, HASH_SEED_2);
-        bool full_flag = CarMon_bm.process_packet(hash_flowid, hash_element);
-        if (full_flag == false)
-            return;
-    }
     //rerSketch
     uint32_t flow_hash = str_hash32(flowid,HASH_SEED_1);
     uint32_t Estimator_pos = flow_hash % table_size;
@@ -125,7 +113,7 @@ void RerSkt<Estimator>::process_packet(string flowid, string element){
     //detect superspreaders
     if(DETECT_SUPERSPREADER == false)
         return;
-    uint32_t flowsrpead = get_flow_spread(flowid);
+    uint32_t flowsrpead = get_flow_cardinality(flowid);
     FLOW tmpflow;
     tmpflow.flowid = flowid;  tmpflow.flow_spread = flowsrpead;
     if(inserted.find(flowid) != inserted.end()){
@@ -155,17 +143,7 @@ void RerSkt<Estimator>::process_packet(string flowid, string element){
 }
 
 template<class Estimator>
-int RerSkt<Estimator>::get_flow_spread(string flowid){
-    //CarMon: filter
-    int spread_layer1 = 0;
-    array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
-    if (use_CarMon) {
-        spread_layer1 = CarMon_bm.get_spread(flowid, hash_flowid, 0);  //
-        if(spread_layer1 != BITMAP_FULL_FLAG)
-            return spread_layer1;
-        else
-            spread_layer1 = CarMon_bm.capacity;
-    }
+int RerSkt<Estimator>::get_flow_cardinality(string flowid){
     //rerSketch
     uint32_t hashres_32 = str_hash32(flowid, HASH_SEED_1);
     uint32_t Estimator_pos = hashres_32 % table_size;
@@ -189,9 +167,9 @@ int RerSkt<Estimator>::get_flow_spread(string flowid){
     int pri_spread = primary_est.get_spread();
     int comp_spread = complement_est.get_spread();
     int flow_spread = pri_spread - comp_spread;
-    if (flow_spread < 0)
-        flow_spread = 0;
-    return flow_spread + spread_layer1;
+    if (flow_spread <= 0)
+        flow_spread = 1;
+    return flow_spread;
 }
 
 template class RerSkt<Bitmap>;

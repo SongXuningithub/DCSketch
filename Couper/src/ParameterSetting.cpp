@@ -1,4 +1,4 @@
-#include "DCSketch.h"
+#include "Couper.h"
 #include "mylibpcap.h"
 #include <iostream>
 #include <fstream>
@@ -56,7 +56,7 @@ int main()
         vector<double> Layer1factors;
         vector<double> Layer2factors;
         for (size_t i = 0; i < datasets[dataset].size(); i++){
-            DCSketch dcsketch(tmpmem, tmpratio);
+            Couper couper(tmpmem, tmpratio);
             string filename = datasets[dataset][i];
             PCAP_SESSION session(dataset,filename,PCAP_FILE);
 
@@ -68,15 +68,15 @@ int main()
                 srcip = cur_packet.get_srcip();
                 dstip = cur_packet.get_dstip();
                 if (per_src_flow)
-                    dcsketch.process_element(srcip,dstip);
+                    couper.process_element(srcip,dstip);
                 else
-                    dcsketch.process_element(dstip,srcip);
+                    couper.process_element(dstip,srcip);
             }
             // endTime = clock();
             // cout << "The run time is: " <<(double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-            dcsketch.get_global_info();
+            couper.get_global_info();
 
-            array<double,2> tmpfactors = dcsketch.GetLoadFactor();
+            array<double,2> tmpfactors = couper.GetLoadFactor();
             Layer1factors.push_back(tmpfactors[0]);
             Layer2factors.push_back(tmpfactors[1]);
         }
