@@ -455,6 +455,9 @@ uint32_t Couper::get_flow_cardinality(string flowid){
         int cardinality_layer2 = layer2.get_cardinality(flowid, hash_flowid, layer2_bm);
         int overlapping_bias = get_overlapping_bias(layer1_bm, layer2_bm);
         // cout << overlapping_bias << endl;
+        /* not remove overlapping error */
+        // ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity];
+        /* remove overlapping error */
         if (overlapping_bias < 0)
             overlapping_bias = 0;
         ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity] - overlapping_bias;

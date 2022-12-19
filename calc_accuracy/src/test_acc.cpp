@@ -312,7 +312,7 @@ int main() {
         unordered_map<string, vector<double>> acc;
 
         for(uint32_t cm_mem : cm_mems){
-            cout << "CarMon memory: " << cm_mem << endl;
+            cout << "Couper memory: " << cm_mem << endl;
             string filename = datasets[dataset][0];
             ifstream ifile_truth("../../get_groundtruth/SuperSpreaders/"+dataset+"/"+ filename + ".txt");
 

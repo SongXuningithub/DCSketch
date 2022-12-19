@@ -28,7 +28,7 @@ int main(){
     // uint32_t mem = 1000;
     // vector<double> cm_ratios{0.05, 0.15, 0.25, 0.35, 0.45, 0.55}; //0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 
     // for(auto cmratio : cm_ratios){
-    //     cout << "CarMon ratio: " << cmratio << endl;
+    //     cout << "Couper ratio: " << cmratio << endl;
     //     uint32_t filenum = 1;
     //     for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
     //         vHLL virhll(mem, cmratio);

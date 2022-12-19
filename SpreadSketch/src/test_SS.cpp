@@ -16,7 +16,7 @@ int main()
     // }
 
     for(auto cm_mem : cm_mems){
-        cout << "CarMon memory: " << cm_mem << endl;
+        cout << "Couper memory: " << cm_mem << endl;
         uint32_t filenum = 1;
         for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
             double cm_ratio = cm_mem/mem;

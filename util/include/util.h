@@ -167,14 +167,14 @@ template <class Framework>
 void write_perflow_spread(string dataset, string filename, string ofile_path, Framework& sketch, uint32_t tmpmem);
 
 template <class Framework>
-void Test_task1(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
+void Test_task1(Framework not_used, string ofile_path, double Couper_Layer1_ratio){
     string dataset = "MAWI";
-    vector<uint32_t> mems{1500}; //500, 750, 1000, 1250, 1500, 1750, 2000
+    vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
         uint32_t filenum = 1;
-        for (size_t i = 0; i < 1; i++){  //datasets[dataset].size()
-            Framework sketch(tmpmem, CarMon_Layer1_ratio);
+        for (size_t i = 1; i < 2; i++){  //datasets[dataset].size()
+            Framework sketch(tmpmem, Couper_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
             clock_t startTime, endTime;
@@ -228,14 +228,14 @@ void write_perflow_spread(string dataset, string filename, string ofile_path, Fr
 void write_superspreaders(string dataset, string ofile_path, string filename, vector<IdSpread>& superspreaders, uint32_t tmpmem);
 
 template <class Framework>
-void Test_task2(Framework not_used, string ofile_path, double CarMon_Layer1_ratio){
+void Test_task2(Framework not_used, string ofile_path, double Couper_Layer1_ratio){
     string dataset = "MAWI";  
     vector<uint32_t> mems{1000}; //500, 750, 1000, 1250, 1500, 1750, 2000   500,  1000, 1500, 2000
     for(auto tmpmem : mems){
         cout << "memory: " << tmpmem << endl;
         uint32_t filenum = 1;
         for (size_t i = 0; i < filenum; i++){  //datasets[dataset].size()
-            Framework sketch(tmpmem, CarMon_Layer1_ratio);
+            Framework sketch(tmpmem, Couper_Layer1_ratio);
             FILE_HANDLER filehandler(dataset, i);
             string flowID, elemID;
             clock_t startTime, endTime;
@@ -324,7 +324,7 @@ void Get_Mem(Framework not_use, string dataset, uint32_t mem_base){
 //         }
 //         while(true){
 //             double cmratio = 0;
-//             // cout << "CarMon ratio: " << cmratio << endl;
+//             // cout << "Couper ratio: " << cmratio << endl;
 //             double tmp_mem = mem_base * pow(10.0, expo);
 //             Framework sketch(tmp_mem, cmratio);
 //             // Framework sketch(tmp_mem, 0.6);

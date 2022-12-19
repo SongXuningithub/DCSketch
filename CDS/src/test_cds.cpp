@@ -22,7 +22,7 @@ int main()
     }
     
     for(auto cm_mem : cm_mems){
-        cout << "CarMon memory: " << cm_mem << endl;
+        cout << "Couper memory: " << cm_mem << endl;
         double cm_ratio = (double)cm_mem/mem;
         cout << cm_ratio <<endl;
         uint32_t filenum = 1;
