@@ -441,9 +441,6 @@ int Couper::get_overlapping_bias(uint32_t bm_layer1, uint32_t bm_layer2){
 }
 
 uint32_t Couper::get_flow_cardinality(string flowid){
-    // if (flowid=="226006128024") {
-    //     cout<<"pass"<<endl;
-    // }
     array<uint64_t,2> hash_flowid = str_hash128(flowid, HASH_SEED_1);
     uint32_t layer1_bm;
     int cardinality_layer1 = layer1.get_cardinality(flowid, hash_flowid, layer1_bm);
