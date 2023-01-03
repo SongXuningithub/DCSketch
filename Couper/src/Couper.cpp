@@ -453,11 +453,12 @@ uint32_t Couper::get_flow_cardinality(string flowid){
         int overlapping_bias = get_overlapping_bias(layer1_bm, layer2_bm);
         // cout << overlapping_bias << endl;
         /* not remove overlapping error */
-        // ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity];
+        ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity];
+        
         /* remove overlapping error */
-        if (overlapping_bias < 0)
-            overlapping_bias = 0;
-        ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity] - overlapping_bias;
+        // if (overlapping_bias < 0)
+        //     overlapping_bias = 0;
+        // ret = cardinality_layer2 + layer1.card_dict[Bitmap_Arr::bitmap_size - layer1.capacity] - overlapping_bias;
     }
     if (ret <= 0)
         ret = 1;
