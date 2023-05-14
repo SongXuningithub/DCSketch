@@ -31,8 +31,8 @@ using std::unordered_map;
 class Bitmap_Arr{       // layer1: T_B
 public:
     uint32_t memory;        //kB
-    static const uint32_t bitmap_size = 12;      // b=12 (bits)
-    static const uint32_t capacity = 9;          // tau = 9
+    static const uint32_t bitmap_size = 20;      // b=12 (bits)
+    static const uint32_t capacity = 15;          // tau = 9
     uint32_t bitmap_num;      //L_1
     vector<uint32_t> raw;  
     array<uint32_t, bitmap_size> patterns;

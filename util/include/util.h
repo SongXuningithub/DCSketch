@@ -286,9 +286,9 @@ void Get_Mem(Framework not_use, string dataset, uint32_t mem_base){
     while(true){
         double tmp_mem = mem_base * pow(2.0, expo);
         cout << "..........tmp_mem: " << tmp_mem << "............" << endl;
-        cmratio = 0.6;  //600.0/tmp_mem;
+        cmratio = 0.5;  //600.0/tmp_mem;
         Framework sketch(tmp_mem, cmratio);
-        FILE_HANDLER filehandler(dataset, 3);
+        FILE_HANDLER filehandler(dataset, 0);
         string flowID, elemID;
         while(int status = filehandler.get_item(flowID, elemID)){
             // cout << flowID << "  " << elemID << endl;
